@@ -85,7 +85,9 @@ ComputedProperty.prototype = new SC.Descriptor();
 var CP_DESC = {
   configurable: true,
   enumerable:   true,
+  /** @private */
   get: function() { return undefined; }, // for when use_accessors is false.
+  /** @private */
   set: SC.Descriptor.MUST_USE_SETTER  // for when use_accessors is false
 };
 
@@ -134,6 +136,9 @@ function mkCpSetter(keyName, desc) {
   };
 }
 
+/**
+  @class
+*/
 var Cp = ComputedProperty.prototype;
 
 /**
@@ -152,7 +157,7 @@ Cp.cacheable = function(aFlag) {
 /**
   Sets the dependent keys on this computed property.  Pass any number of 
   arguments containing key paths that this computed property depends on.
-  
+
   @param {String} path... zero or more property paths
   @returns {SC.ComputedProperty} receiver
 */
@@ -202,7 +207,10 @@ Cp.get = function(obj, keyName) {
   return ret ;
 };
 
-/** @private - impl descriptor API */
+/**
+  @private
+  impl descriptor API
+*/
 Cp.set = function(obj, keyName, value) {
   var cacheable = this._cacheable;
   
@@ -232,12 +240,14 @@ Cp.val = function(obj, keyName) {
 };
 
 if (!SC.platform.hasPropertyAccessors) {
+  /** @private */
   Cp.setup = function(obj, keyName, value) {
     obj[keyName] = undefined; // so it shows up in key iteration
     addDependentKeys(this, obj, keyName);
   };
   
 } else if (!USE_ACCESSORS) {
+  /** @private */
   Cp.setup = function(obj, keyName) {
     // throw exception if not using SC.get() and SC.set() when supported
     o_defineProperty(obj, keyName, CP_DESC);

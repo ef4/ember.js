@@ -39,10 +39,16 @@ function invoke(target, method, args, ignore) {
 
 var timerMark; // used by timers...
 
-var RunLoop = SC.Object.extend({
+/**
+  @class
+  @name SC.RunLoop
+*/
+var RunLoop = SC.Object.extend(
+/** @scope SC.RunLoop.prototype */{
 
   _prev: null,
 
+  /** @private */
   init: function(prev) {
     this._prev = prev;
     this.onceTimers = {};

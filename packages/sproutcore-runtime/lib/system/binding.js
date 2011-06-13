@@ -295,9 +295,11 @@ var OR_LOGIC = function(obj, left, right) {
   create bindings for you. You should always use the highest-level APIs
   available, even if you understand how to it works underneath.
 
+  @name SC.Binding
   @since SproutCore 1.0
 */
-var Binding = SC.Object.extend({
+var Binding = SC.Object.extend(
+/** @scope SC.Binding.prototype */{
 
   /** @private */
   _direction: 'fwd',
@@ -657,14 +659,6 @@ Binding.reopenClass(/** @scope SC.Binding */ {
   multiple: function(from) {
     var C = this, binding = new C(null, from);
     return binding.multiple();
-  },
-
-  /**
-    @see SC.Binding.prototype.oneWay
-  */
-  oneWay: function(from, flag) {
-    var C = this, binding = new C(null, from);
-    return binding.oneWay(flag);
   },
 
   /**

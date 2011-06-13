@@ -202,8 +202,6 @@ SC.meta = function meta(obj, writable) {
 };
 
 /**
-  @private
-
   Wraps the passed function so that `this._super` will point to the superFunc
   when the function is invoked.  This is the primitive we use to implement
   calls to super.
@@ -220,6 +218,7 @@ SC.wrap = function(func, superFunc) {
   
   function K() {}
   
+  /** @private */
   var newFunc = function() {
     var ret, sup = this._super;
     this._super = superFunc || K;

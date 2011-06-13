@@ -26,7 +26,8 @@ var get = SC.get, set = SC.set;
 
   @since SproutCore 1.0
 */
-SC.Copyable = SC.Mixin.create({
+SC.Copyable = SC.Mixin.create(
+/** @scope SC.Copyable.prototype */{
 
   /**
     Override to return a copy of the receiver.  Default implementation raises

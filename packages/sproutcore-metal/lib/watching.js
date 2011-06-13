@@ -24,11 +24,13 @@ var notifyObservers = SC.notifyObservers;
 var FIRST_KEY = /^([^\.\*]+)/;
 var IS_PATH = /[\.\*]/;
 
+/** @private */
 function firstKey(path) {
   return path.match(FIRST_KEY)[0];
 }
 
 // returns true if the passed path is just a keyName
+/** @private */
 function isKeyName(path) {
   return path==='*' || !IS_PATH.test(path);
 }
@@ -141,7 +143,11 @@ var ChainNode = function(parent, key, value, separator) {
 };
 
 
+/**
+  @class
+*/
 var Wp = ChainNode.prototype;
+
 
 Wp.destroy = function() {
   if (this._watching) {
@@ -355,6 +361,7 @@ function chainsDidChange(obj, keyName) {
 // WATCH
 // 
 
+/** @private */
 var WATCHED_PROPERTY = SC.SIMPLE_PROPERTY.watched;
 
 /**

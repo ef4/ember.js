@@ -33,7 +33,15 @@ NO = false;
 // ensure no undefined errors in browsers where console doesn't exist
 if (typeof console === 'undefined') {
   window.console = {};
-  console.log = console.info = console.warn = console.error = function() {};
+  var noop = function() {};
+  /** @private */
+  console.log = noop;
+  /** @private */
+  console.info = noop;
+  /** @private */
+  console.warn = noop;
+  /** @private */
+  console.error = noop;
 }
 //@endif
 
@@ -130,31 +138,6 @@ SC.none = function(obj) {
 */
 SC.empty = function(obj) {
   return obj === null || obj === undefined || obj === '';
-};
-
-/**
-  @function
-  
-  Returns YES if the passed object is an array or Array-like.
-
-  SproutCore Array Protocol:
-
-    - the object has an objectAt property
-    - the object is a native Array
-    - the object is an Object, and has a length property
-
-  Unlike SC.typeOf this method returns true even if the passed object is
-  not formally array but appears to be array-like (i.e. implements SC.Array)
-
-  @param {Object} obj The object to test
-  @returns {Boolean}
-*/
-SC.isArray = function(obj) {
-  if (!obj || obj.setInterval) { return false; }
-  if (Array.isArray && Array.isArray(obj)) { return true; }
-  if (SC.Array && SC.Array.detect(obj)) { return true; }
-  if ((obj.length !== undefined) && 'object'===typeof obj) { return true; }
-  return false;
 };
 
 /**

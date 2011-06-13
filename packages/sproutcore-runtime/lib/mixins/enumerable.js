@@ -15,16 +15,21 @@
 var get = SC.get, set = SC.set;
 
 var contexts = [];
+
+/** @private */
 function popCtx() {
   return contexts.length===0 ? {} : contexts.pop();
 }
 
+/** @private */
 function pushCtx(ctx) {
   contexts.push(ctx);
   return null;
 }
 
+/** @private */
 function iter(key, value) {
+  /** @private */
   function i(item) {
     var cur = get(item, key);
     return value===undefined ? !!cur : value===cur;
@@ -32,6 +37,7 @@ function iter(key, value) {
   return i ;
 }
 
+/** @private */
 function xform(target, method, params) {
   method.call(target, params[0], params[2], params[3]);
 }

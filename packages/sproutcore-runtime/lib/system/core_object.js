@@ -56,6 +56,10 @@ function makeCtor() {
   
 }
 
+/**
+  @class
+  @name SC.Object
+*/
 var Object = makeCtor();
 
 Object.PrototypeMixin = SC.Mixin.create({

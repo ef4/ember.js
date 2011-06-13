@@ -10,6 +10,7 @@ require('sproutcore-metal/platform');
 require('sproutcore-metal/utils');
 
 var USE_ACCESSORS = SC.platform.hasPropertyAccessors && SC.ENV.USE_ACCESSORS;
+
 SC.USE_ACCESSORS = !!USE_ACCESSORS;
 
 var meta = SC.meta;
@@ -23,6 +24,7 @@ var meta = SC.meta;
 
 var get, set;
 
+/** @private */
 get = function get(obj, keyName) {
   if (keyName === undefined && 'string' === typeof obj) {
     keyName = obj;
@@ -37,6 +39,7 @@ get = function get(obj, keyName) {
   return ret;
 };
 
+/** @private */
 set = function set(obj, keyName, value) {
   if (('object'===typeof obj) && !(keyName in obj)) {
     if ('function' === typeof obj.setUnknownProperty) {
@@ -54,6 +57,7 @@ if (!USE_ACCESSORS) {
 
   var o_get = get, o_set = set;
   
+  /** @private */
   get = function(obj, keyName) {
 
     if (keyName === undefined && 'string' === typeof obj) {
@@ -67,6 +71,7 @@ if (!USE_ACCESSORS) {
     else return o_get(obj, keyName);
   };
 
+  /** @private */
   set = function(obj, keyName, value) {
     var desc = meta(obj, false).descs[keyName];
     if (desc) desc.set(obj, keyName, value);

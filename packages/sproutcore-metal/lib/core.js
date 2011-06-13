@@ -85,7 +85,9 @@ SC.ENV = 'undefined' === typeof ENV ? {} : ENV;
     will be executed.  If the function returns false an exception will be
     thrown.
 */
-window.sc_assert = function sc_assert(desc, test) {
+var sc_assert = function sc_assert(desc, test) {
   if ('function' === typeof test) test = test()!==false;
   if (!test) throw new Error("assertion failed: "+desc);
 };
+
+window.sc_assert = sc_assert;

@@ -263,6 +263,10 @@ SC.mixin = function(obj) {
 };
 
 
+/**
+  @class
+  @name SC.Mixin
+*/
 Mixin = function() { return initMixin(this, arguments); };
 
 Mixin._apply = applyMixin;
@@ -414,7 +418,10 @@ Mixin.mixins = function(obj) {
   return ret;
 };
 
+/** @private */
 REQUIRED = new SC.Descriptor();
+
+/** @private */
 REQUIRED.toString = function() { return '(Required Property)'; };
 
 SC.required = function() {

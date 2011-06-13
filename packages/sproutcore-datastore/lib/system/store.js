@@ -2601,7 +2601,7 @@ SC.Store = SC.Object.extend( /** @scope SC.Store.prototype */ {
 
 }) ;
 
-SC.Store.reopenClass(/** @scope SC.Store.prototype */{
+SC.Store.reopenClass(/** @scope SC.Store */{
 
   /**
     Standard error raised if you try to commit changes from a nested store
@@ -2694,13 +2694,7 @@ SC.Store.reopenClass(/** @scope SC.Store.prototype */{
   */
   generateStoreKey: function() { return this.nextStoreKey++; },
 
-  /**
-    Given a `storeKey` returns the `primaryKey` associated with the key.
-    If no `primaryKey` is associated with the `storeKey`, returns `null`.
-
-    @param {Number} storeKey the store key
-    @returns {String} the primary key or null
-  */
+  /** @private - documented above */
   idFor: function(storeKey) {
     return this.idsByStoreKey[storeKey] ;
   },

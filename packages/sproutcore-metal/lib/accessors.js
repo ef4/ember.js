@@ -10,10 +10,20 @@ require('sproutcore-metal/platform');
 require('sproutcore-metal/utils');
 
 var USE_ACCESSORS = SC.platform.hasPropertyAccessors && SC.ENV.USE_ACCESSORS;
+var TUPLE_RET = [];
+var IS_GLOBAL = /^([A-Z$]|([0-9][A-Z$])).*[\.\*]/;
+var IS_GLOBAL_SET = /^([A-Z$]|([0-9][A-Z$])).*[\.\*]?/;
+var HAS_THIS  = /^this[\.\*]/;
+var FIRST_KEY = /^([^\.\*]+)/;
+
+var get;
+var meta = SC.meta;
+var o_get;
+var o_set;
+var set;
+
 
 SC.USE_ACCESSORS = !!USE_ACCESSORS;
-
-var meta = SC.meta;
 
 
 // ..........................................................
@@ -23,8 +33,6 @@ var meta = SC.meta;
 // If we are on a platform that supports accessors we can get use those.
 // Otherwise simulate accessors by looking up the property directly on the
 // object.
-
-var get, set;
 
 /** @private */
 get = function get(obj, keyName) {
@@ -61,7 +69,8 @@ set = function set(obj, keyName, value) {
 };
 
 if (!USE_ACCESSORS) {
-  var o_get = get, o_set = set;
+  o_get = get;
+  o_set = set;
 
   /** @private */
   get = function(obj, keyName) {
@@ -84,7 +93,6 @@ if (!USE_ACCESSORS) {
     else { o_set(obj, keyName, value); }
     return value;
   };
-
 }
 
 /**
@@ -165,12 +173,6 @@ function normalizePath(path) {
   return path;
 }
 
-var TUPLE_RET = [];
-var IS_GLOBAL = /^([A-Z$]|([0-9][A-Z$])).*[\.\*]/;
-var IS_GLOBAL_SET = /^([A-Z$]|([0-9][A-Z$])).*[\.\*]?/;
-var HAS_THIS  = /^this[\.\*]/;
-var FIRST_KEY = /^([^\.\*]+)/;
-
 /** @private */
 function firstKey(path) {
   return path.match(FIRST_KEY)[0];
@@ -209,12 +211,12 @@ function getPath(target, path) {
 function normalizeTuple(target, path) {
   var hasThis = HAS_THIS.test(path),
       isGlobal = !hasThis && IS_GLOBAL.test(path),
-      key;
+      key, idx;
 
   if (!target || isGlobal) { target = window; }
   if (hasThis) { path = path.slice(5); }
 
-  var idx = path.indexOf('*');
+  idx = path.indexOf('*');
   if (idx > 0 && path[idx - 1] !== '.') {
     // should not do lookup on a prototype object because the object isn't
     // really live yet.
@@ -233,7 +235,7 @@ function normalizeTuple(target, path) {
 
   // must return some kind of path to be valid else other things will break.
   if (!path || path.length === 0) { throw new Error('Invalid Path'); }
-  
+
   TUPLE_RET[0] = target;
   TUPLE_RET[1] = path;
   return TUPLE_RET;
@@ -285,7 +287,7 @@ SC.normalizeTuple.primitive = normalizeTuple;
 */
 SC.getPath = function(root, path) {
   var hasThis, isGlobal;
-  
+
   if (!path && typeof root === 'string') {
     path = root;
     root = null;
@@ -322,7 +324,7 @@ SC.getPath = function(root, path) {
 */
 SC.setPath = function(root, path, value) {
   var keyName;
-  
+
   if (arguments.length === 2 && typeof root === 'string') {
     value = path;
     path = root;

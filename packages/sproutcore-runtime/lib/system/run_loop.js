@@ -151,7 +151,13 @@ SC.RunLoop = RunLoop;
 //
 
 /** @private */
-var run;
+var run = function(target, method) {
+  var ret, loop;
+  run.begin();
+  if (target || method) ret = invoke(target, method);
+  run.end();
+  return ret;
+};
 
 /**
   Runs the passed target and method inside of a runloop, ensuring any
@@ -176,14 +182,7 @@ var run;
 
   @returns {Object} return value from invoking the passed function.
 */
-SC.run = run = function(target, method) {
-
-  var ret, loop;
-  run.begin();
-  if (target || method) ret = invoke(target, method);
-  run.end();
-  return ret;
-};
+SC.run = run;
 
 /**
   Begins a new RunLoop.  Any deferred actions invoked after the begin will

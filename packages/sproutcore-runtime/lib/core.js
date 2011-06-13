@@ -12,6 +12,7 @@ require('sproutcore-metal');
 //
 
 /**
+  @private
   @name YES
   @static
   @type Boolean
@@ -21,6 +22,7 @@ require('sproutcore-metal');
 YES = true;
 
 /**
+  @private
   @name NO
   @static
   @type Boolean
@@ -239,6 +241,7 @@ SC.compare = function (v, w) {
   }
 };
 
+/** @private */
 function _copy(obj, deep, seen, copies) {
   var ret, loc, key;
 

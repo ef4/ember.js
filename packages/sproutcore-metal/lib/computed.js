@@ -10,12 +10,13 @@ require('sproutcore-metal/platform');
 require('sproutcore-metal/utils');
 require('sproutcore-metal/properties');
 
-var meta = SC.meta;
-var guidFor = SC.guidFor;
-var USE_ACCESSORS = SC.USE_ACCESSORS;
 var a_slice = Array.prototype.slice;
+var guidFor = SC.guidFor;
+var meta = SC.meta;
 var o_create = SC.platform.create;
 var o_defineProperty = SC.platform.defineProperty;
+var USE_ACCESSORS = SC.USE_ACCESSORS;
+
 
 // ..........................................................
 // DEPENDENT KEYS
@@ -78,6 +79,7 @@ function addDependentKeys(desc, obj, keyName) {
   }
 }
 
+
 // ..........................................................
 // COMPUTED PROPERTY
 //
@@ -91,17 +93,41 @@ function ComputedProperty(func, opts) {
 
 /**
   @class
+
+  Creates a computed property on an object. Normally,
+  you create computed properties using the SC.computed()
+  helper. If ENV.EXTEND_PROTOTYPES is true, you can simply
+  call the .property() and .cacheable() helpers on function,
+  as in the second example.
+
+  ## Examples
+
+      MyObject = SC.Object.extend({
+        spanishHello: SC.computed(function() {
+          return "Hola";
+        }).property('here', 'there'),
+
+        englishHello: function() {
+          return "Hello";
+        }.property('here', 'there').cacheable()
+      });
 */
 SC.ComputedProperty = ComputedProperty;
 ComputedProperty.prototype = new SC.Descriptor();
 
 var CP_DESC = {
   configurable: true,
-  enumerable:   true,
-  /** @private */
-  get: function() { return undefined; }, // for when use_accessors is false.
-  /** @private */
-  set: SC.Descriptor.MUST_USE_SETTER  // for when use_accessors is false
+  enumerable: true,
+  /**
+    @private
+    For when use_accessors is false.
+  */
+  get: function() { return undefined; },
+  /**
+    @private
+    For when use_accessors is false
+  */
+  set: SC.Descriptor.MUST_USE_SETTER
 };
 
 /** @private */
@@ -153,7 +179,8 @@ function mkCpSetter(keyName, desc) {
 }
 
 /**
-  @class
+  @ignore
+  @private
 */
 var Cp = ComputedProperty.prototype;
 
@@ -162,7 +189,8 @@ var Cp = ComputedProperty.prototype;
   mode the computed property will automatically cache the return value of
   your function until one of the dependent keys changes.
 
-  @param {Boolean} aFlag optional set to false to disable cacheing
+  @name SC.ComputedProperty#cacheable
+  @param {Boolean} [aFlag] Set to false to disable cacheing
   @returns {SC.ComputedProperty} receiver
 */
 Cp.cacheable = function(aFlag) {
@@ -174,6 +202,7 @@ Cp.cacheable = function(aFlag) {
   Sets the dependent keys on this computed property. Pass any number of
   arguments containing key paths that this computed property depends on.
 
+  @name SC.ComputedProperty#property
   @param {String} path... zero or more property paths
   @returns {SC.ComputedProperty} receiver
 */

@@ -12,9 +12,8 @@ var get = SC.get, set = SC.set;
 /**
   @class
 
-  An SC.Application instance serves as the namespace in which you define your
-  application's classes. You can also override the configuration of your
-  application.
+  Serves as the namespace in which you define your application's classes.
+  You can also override the configuration of your application.
 
   By default, SC.Application will begin listening for events on the document.
   If your application is embedded inside a page, instead of controlling the
@@ -86,5 +85,3 @@ SC.Application = SC.Namespace.extend(
     get(this, 'eventDispatcher').destroy();
   }
 });
-
-

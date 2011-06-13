@@ -17,6 +17,7 @@ var set = SC.set, get = SC.get;
 var o_create = SC.platform.create,
     meta = SC.meta;
 
+/** @private */
 function makeCtor() {
 
   // Note: avoid accessing any properties on the object since it makes the
@@ -58,11 +59,12 @@ function makeCtor() {
 
 /**
   @class
-  @name SC.Object
+  @name SC.CoreObject
 */
 var Object = makeCtor();
 
-Object.PrototypeMixin = SC.Mixin.create({
+Object.PrototypeMixin = SC.Mixin.create(
+/** @scope SC.CoreObject.prototype */{
   
   reopen: function() {
     SC.Mixin._apply(this, arguments, true);
@@ -93,7 +95,8 @@ Object.PrototypeMixin = SC.Mixin.create({
 
 Object.__super__ = null;
 
-var ClassMixin = SC.Mixin.create({
+var ClassMixin = SC.Mixin.create(
+/** @scope SC.CoreObject */{
     
   ClassMixin: SC.required(),
   

@@ -23,7 +23,8 @@ var get = SC.get, set = SC.set;
   @extends SC.Array
   @extends SC.MutableArray
 */
-SC.ArrayProxy = SC.Object.extend(SC.MutableArray, {
+SC.ArrayProxy = SC.Object.extend(SC.MutableArray,
+/** @scope SC.ArrayProxy.prototype */{
   
   /**
     The content array.  Must be an object that implements SC.Array and or

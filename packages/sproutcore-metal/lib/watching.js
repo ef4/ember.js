@@ -40,6 +40,8 @@ function isKeyName(path) {
 // 
 
 var DEP_SKIP = { __scproto__: true }; // skip some keys and toString
+
+/** @private */
 function iterDeps(methodName, obj, depKey, seen) {
   
   var guid = guidFor(obj);
@@ -60,7 +62,12 @@ function iterDeps(methodName, obj, depKey, seen) {
 
 var WILL_SEEN, DID_SEEN;
 
-// called whenever a property is about to change to clear the cache of any dependent keys (and notify those properties of changes, etc...)
+/**
+  @private
+
+  Called whenever a property is about to change to clear the cache
+  of any dependent keys (and notify those properties of changes, etc...)
+*/
 function dependentKeysWillChange(obj, depKey) {
   var seen = WILL_SEEN, top = !seen;
   if (top) seen = WILL_SEEN = {};
@@ -68,7 +75,11 @@ function dependentKeysWillChange(obj, depKey) {
   if (top) WILL_SEEN = null;
 }
 
-// called whenever a property has just changed to update dependent keys
+/**
+  @private
+
+  Called whenever a property has just changed to update dependent keys
+*/
 function dependentKeysDidChange(obj, depKey) {
   var seen = DID_SEEN, top = !seen;
   if (top) seen = DID_SEEN = {};
@@ -80,6 +91,7 @@ function dependentKeysDidChange(obj, depKey) {
 // CHAIN
 // 
 
+/** @private */
 function addChainWatcher(obj, keyName, node) {
   if (!obj || ('object' !== typeof obj)) return; // nothing to do
   var m = meta(obj);
@@ -93,6 +105,7 @@ function addChainWatcher(obj, keyName, node) {
   SC.watch(obj, keyName);
 }
 
+/** @private */
 function removeChainWatcher(obj, keyName, node) {
   if (!obj || ('object' !== typeof obj)) return; // nothing to do
   var m = meta(obj, false);
@@ -104,9 +117,13 @@ function removeChainWatcher(obj, keyName, node) {
 
 var pendingQueue = [];
 
-// attempts to add the pendingQueue chains again.  If some of them end up
-// back in the queue and reschedule is true, schedules a timeout to try 
-// again.
+/**
+  @private
+
+  Attempts to add the pendingQueue chains again.  If some of them end up
+  back in the queue and reschedule is true, schedules a timeout to try 
+  again.
+*/
 function flushPendingChains(reschedule) {
   if (pendingQueue.length===0) return ; // nothing to do
   
@@ -119,13 +136,18 @@ function flushPendingChains(reschedule) {
   }
 }
 
+/** @private */
 function isProto(pvalue) {
   return meta(pvalue, false).proto === pvalue;
 }
 
-// A ChainNode watches a single key on an object.  If you provide a starting
-// value for the key then the node won't actually watch it.  For a root node 
-// pass null for parent and key and object for value.
+/**
+  @private
+
+  A ChainNode watches a single key on an object.  If you provide a starting
+  value for the key then the node won't actually watch it.  For a root node 
+  pass null for parent and key and object for value.
+*/
 var ChainNode = function(parent, key, value, separator) {
   var obj;
   
@@ -147,7 +169,6 @@ var ChainNode = function(parent, key, value, separator) {
   @class
 */
 var Wp = ChainNode.prototype;
-
 
 Wp.destroy = function() {
   if (this._watching) {
@@ -320,9 +341,13 @@ Wp.didChange = function() {
   if (this._parent) this._parent.chainDidChange(this, this._key, 1);
 };
 
-// get the chains for the current object.  If the current object has 
-// chains inherited from the proto they will be cloned and reconfigured for
-// the current object.
+/**
+  @private
+
+  Get the chains for the current object.  If the current object has 
+  chains inherited from the proto they will be cloned and reconfigured for
+  the current object.
+*/
 function chainsFor(obj) {
   var m   = meta(obj), ret = m.chains;
   if (!ret) {
@@ -335,6 +360,7 @@ function chainsFor(obj) {
 
 
 
+/** @private */
 function notifyChains(obj, keyName, methodName) {
   var m = meta(obj, false);
   var nodes = m.chainWatchers;
@@ -349,10 +375,12 @@ function notifyChains(obj, keyName, methodName) {
   }
 }
 
+/** @private */
 function chainsWillChange(obj, keyName) {
   notifyChains(obj, keyName, 'willChange');
 }
 
+/** @private */
 function chainsDidChange(obj, keyName) {
   notifyChains(obj, keyName, 'didChange');
 }

@@ -67,7 +67,8 @@ var get = SC.get, set = SC.set;
 
   @since SproutCore 1.0
 */
-SC.Freezable = SC.Mixin.create({
+SC.Freezable = SC.Mixin.create(
+/** @scope SC.Freezable.prototype */{
 
   /**
     Set to YES when the object is frozen.  Use this property to detect whether

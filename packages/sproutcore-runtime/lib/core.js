@@ -33,6 +33,7 @@ NO = false;
 // ensure no undefined errors in browsers where console doesn't exist
 if (typeof console === 'undefined') {
   window.console = {};
+  /** @private */
   var noop = function() {};
   /** @private */
   console.log = noop;

@@ -3,7 +3,7 @@
 // Copyright: ©2011 Strobe Inc. and contributors.
 // License:   Licensed under MIT license (see license.js)
 // ==========================================================================
-/*globals sc_assert */
+/*globals sc_assert Node */
 
 require('sproutcore-metal/core');
 
@@ -21,6 +21,7 @@ SC.platform.create = Object.create;
 
 //@if (legacy)
 if (!SC.platform.create) {
+  /** @private */
   var O_ctor = function() {},
       O_proto = O_ctor.prototype;
 
@@ -62,7 +63,7 @@ SC.platform.definePropertyOnDOM = (function(){
     try {
       Object.defineProperty(document.body, 'definePropertyOnDOM', {});
       return true;
-    } catch(e) {};
+    } catch(e) {}
   }
   return false;
 })();
@@ -76,12 +77,12 @@ if (SC.platform.defineProperty && !SC.platform.definePropertyOnDOM) {
     } else {
       isNode = typeof obj === "object" &&
         typeof obj.nodeType === "number" &&
-        typeof obj.nodeName === "string"
+        typeof obj.nodeName === "string";
     }
 
     if (isNode) {
       // TODO: Should we have a warning here?
-      return obj[keyName] = desc.value;
+      return (obj[keyName] = desc.value);
     } else {
       return Object.defineProperty(obj, keyName, desc);
     }

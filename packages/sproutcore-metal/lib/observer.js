@@ -18,6 +18,8 @@ var normalizePath = SC.normalizePath;
 var suspended = 0;
 
 var queue = [], queueSet = {};
+
+/** @private */
 function notifyObservers(obj, eventName) {
   if (suspended) {
     
@@ -35,6 +37,7 @@ function notifyObservers(obj, eventName) {
   }
 }
 
+/** @private */
 function flushObserverQueue() {
   if (!queue || queue.length===0) return ;
   var q = queue;
@@ -52,28 +55,34 @@ SC.endPropertyChanges = function() {
   if (suspended<=0) flushObserverQueue();
 };
 
+/** @private */
 function changeEvent(keyName) {
   return keyName+AFTER_OBSERVERS;
 }
 
+/** @private */
 function beforeEvent(keyName) {
   return keyName+BEFORE_OBSERVERS;
 }
 
+/** @private */
 function changeKey(eventName) {
   return eventName.slice(0, -7);
 }
 
+/** @private */
 function beforeKey(eventName) {
   return eventName.slice(0, -7);
 }
 
+/** @private */
 function xformChange(target, method, params) {
   var obj = params[0], keyName = changeKey(params[1]), val;
   if (method.length>2) val = SC.getPath(obj, keyName);
   method.call(target, obj, keyName, val);
 }
 
+/** @private */
 function xformBefore(target, method, params) {
   var obj = params[0], keyName = beforeKey(params[1]), val;
   if (method.length>2) val = SC.getPath(obj, keyName);

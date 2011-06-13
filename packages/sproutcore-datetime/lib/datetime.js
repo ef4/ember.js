@@ -10,6 +10,7 @@ require('sproutcore-runtime');
 var get = SC.get, set = SC.set;
 
 // simple copy op needed for just this code.
+/** @private */
 function copy(opts) {
   var ret = {};
   for(var key in opts) {

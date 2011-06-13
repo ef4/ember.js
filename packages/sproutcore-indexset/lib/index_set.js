@@ -10,12 +10,15 @@ require('sproutcore-runtime');
 
 var get = SC.get, set = SC.set, abs = Math.abs;
 
+/** @private */
 function isIndexSet(obj) {
   return obj instanceof SC.IndexSet;
 }
 
-/** @private
-  iterates through a named range, setting hints every HINT_SIZE indexes
+/**
+  @private
+
+  Iterates through a named range, setting hints every HINT_SIZE indexes
   pointing to the nearest range start.  The passed range must start on a
   range boundary.  It can end anywhere.
 */
@@ -1206,7 +1209,8 @@ SC.IndexSet = SC.Object.extend(SC.Enumerable, SC.MutableEnumerable, SC.Freezable
 
 }) ;
 
-SC.IndexSet.reopenClass({
+SC.IndexSet.reopenClass(
+/** @scope SC.IndexSet */{
   
   /**
     Create can take a simple range as well..

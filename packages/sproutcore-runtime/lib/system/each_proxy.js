@@ -11,8 +11,10 @@ require('sproutcore-runtime/mixins/array');
 
 var set = SC.set, get = SC.get, guidFor = SC.guidFor;
   
+/** @private */
 var EachArray = SC.Object.extend(SC.Array, {
 
+  /** @private */
   init: function(content, keyName, owner) {
     this._super();
     this._keyName = keyName;
@@ -20,11 +22,13 @@ var EachArray = SC.Object.extend(SC.Array, {
     this._content = content;
   },
 
+  /** @private */
   objectAt: function(idx) {
     var item = this._content.objectAt(idx);
     return item && get(item, this._keyName);
   },
   
+  /** @private */
   length: function() {
     var content = this._content;
     return content ? get(content, 'length') : 0;
@@ -34,6 +38,7 @@ var EachArray = SC.Object.extend(SC.Array, {
 
 var IS_OBSERVER = /^.+:(before|change)$/;
 
+/** @private */
 function addObserverForContentKey(content, keyName, proxy, idx, loc) {
   var objects = proxy._objects, guid;
   if (!objects) objects = proxy._objects = {};
@@ -53,6 +58,7 @@ function addObserverForContentKey(content, keyName, proxy, idx, loc) {
   }
 }
 
+/** @private */
 function removeObserverForContentKey(content, keyName, proxy, idx, loc) {
   var objects = proxy._objects;
   if (!objects) objects = proxy._objects = {};
@@ -72,7 +78,6 @@ function removeObserverForContentKey(content, keyName, proxy, idx, loc) {
 }
 
 /**
-  @private
   @class
 
   This is the object instance returned when you get the @each property on an
@@ -81,7 +86,8 @@ function removeObserverForContentKey(content, keyName, proxy, idx, loc) {
   
   @extends SC.Object
 */
-SC.EachProxy = SC.Object.extend({
+SC.EachProxy = SC.Object.extend(
+/** @scope SC.EachProxy.prototype */{
   
   init: function(content) {
     this._super();

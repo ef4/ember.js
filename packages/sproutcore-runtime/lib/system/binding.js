@@ -75,12 +75,14 @@ SC.EMPTY_PLACEHOLDER = '@@EMPTY@@';
 // HELPERS
 // 
 
+/** @private */
 function MULTIPLE(val) {
   if (val instanceof Array) return val;
   if (val === undefined || val === null) return [];
   return [val];
 }
 
+/** @private */
 function SINGLE(val, placeholder) {
   if (val instanceof Array) {
     if (val.length>1) return placeholder;
@@ -89,19 +91,22 @@ function SINGLE(val, placeholder) {
   return val;
 }
 
+/** @private */
 function BOOL(val) {
   return !!val;
 }
 
+/** @private */
 function NOT(val) {
   return !val;
 }
 
-var get     = SC.get, 
-    getPath = SC.getPath, 
-    setPath = SC.setPath, 
+var get = SC.get,
+    getPath = SC.getPath,
+    setPath = SC.setPath,
     guidFor = SC.guidFor;
 
+/** @private */
 function transformedValue(b, val, obj) {
   // handle multiple/single
   var forceKind = b._forceKind;
@@ -116,19 +121,23 @@ function transformedValue(b, val, obj) {
   return val;
 }
 
+/** @private */
 function empty(val) {
   return val===undefined || val===null || val==='' || (SC.isArray(val) && get(val, 'length')===0) ;
 }
 
+/** @private */
 function fromValue(obj, b) {
   var logic = b._logic;
   return logic ? logic(obj, b._from, b._from2) : getPath(obj, b._from);
 }
 
+/** @private */
 var AND_LOGIC = function(obj, left, right) {
   return getPath(obj, left) && getPath(obj, right);
 };
 
+/** @private */
 var OR_LOGIC = function(obj, left, right) {
   return getPath(obj, left) || getPath(obj, right);
 };

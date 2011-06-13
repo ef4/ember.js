@@ -13,10 +13,8 @@ require('sproutcore-runtime/mixins/copyable');
 
 var get = SC.get, set = SC.set;
   
-// Add SC.Array to Array.prototype.  Remove methods with native 
-// implementations and supply some more optimized versions of generic methods
-// because they are so common.
-var NativeArray = SC.Mixin.create(SC.MutableArray, SC.Observable, SC.Copyable, {
+var NativeArray = SC.Mixin.create(SC.MutableArray, SC.Observable, SC.Copyable,
+/** @scope SC.NativeArray.prototype */{
 
   // because length is a built-in property we need to know to just get the 
   // original property.

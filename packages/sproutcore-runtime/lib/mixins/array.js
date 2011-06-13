@@ -15,8 +15,10 @@ require('sproutcore-runtime/mixins/enumerable');
 
 var get = SC.get, set = SC.set;
 
+/** @private */
 function none(obj) { return obj===null || obj===undefined; }
 
+/** @private */
 function xform(target, method, params) {
   method.call(target, params[0], params[2], params[3], params[4]);
 }

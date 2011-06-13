@@ -1,2 +1,2 @@
 #!/usr/bin/env ruby
-system('sc-docs generate ../packages/ -c=./sc.conf -o=./output -v')
+system('sc-docs generate packages/ -c=./docs/sc.conf -o=./docs/output -v')

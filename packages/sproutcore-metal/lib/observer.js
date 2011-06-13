@@ -22,16 +22,14 @@ var queue = [], queueSet = {};
 /** @private */
 function notifyObservers(obj, eventName) {
   if (suspended) {
-    
     // if suspended add to the queue to send event later - but only send 
     // event once.
     var guid = guidFor(obj);
-    if (!queueSet[guid]) queueSet[guid] = {};
+    if (!queueSet[guid]) { queueSet[guid] = {}; }
     if (!queueSet[guid][eventName]) {
       queueSet[guid][eventName] = true;
       queue.push([obj, eventName]);
     }
-
   } else {
     SC.sendEvent(obj, eventName);
   }
@@ -39,10 +37,12 @@ function notifyObservers(obj, eventName) {
 
 /** @private */
 function flushObserverQueue() {
-  if (!queue || queue.length===0) return ;
+  if (!queue || queue.length === 0) { return; }
   var q = queue;
   queue = []; queueSet = {};
-  q.forEach(function(x){ SC.sendEvent(x[0], x[1]); });
+  q.forEach(function(x){
+    SC.sendEvent(x[0], x[1]);
+  });
 }
 
 SC.beginPropertyChanges = function() {
@@ -52,18 +52,18 @@ SC.beginPropertyChanges = function() {
 
 SC.endPropertyChanges = function() {
   suspended--;
-  if (suspended<=0) flushObserverQueue();
+  if (suspended<=0) { flushObserverQueue(); }
 };
 
 /** @private */
 function changeEvent(keyName) {
-  return keyName+AFTER_OBSERVERS;
+  return keyName + AFTER_OBSERVERS;
 }
 
 /** @private */
 function beforeEvent(keyName) {
-  return keyName+BEFORE_OBSERVERS;
-}
+  return keyName + BEFORE_OBSERVERS;
+} 
 
 /** @private */
 function changeKey(eventName) {
@@ -77,15 +77,17 @@ function beforeKey(eventName) {
 
 /** @private */
 function xformChange(target, method, params) {
-  var obj = params[0], keyName = changeKey(params[1]), val;
-  if (method.length>2) val = SC.getPath(obj, keyName);
+  var obj = params[0],
+      keyName = changeKey(params[1]), val;
+
+  if (method.length > 2) { val = SC.getPath(obj, keyName); }
   method.call(target, obj, keyName, val);
 }
 
 /** @private */
 function xformBefore(target, method, params) {
   var obj = params[0], keyName = beforeKey(params[1]), val;
-  if (method.length>2) val = SC.getPath(obj, keyName);
+  if (method.length>2) { val = SC.getPath(obj, keyName); }
   method.call(target, obj, keyName, val);
 }
 
@@ -96,7 +98,6 @@ SC.addObserver = function(obj, path, target, method) {
   return this;
 };
 
-/** @private */
 SC.observersFor = function(obj, path) {
   return SC.listenersFor(obj, changeEvent(path));
 };
@@ -115,7 +116,6 @@ SC.addBeforeObserver = function(obj, path, target, method) {
   return this;
 };
 
-/** @private */
 SC.beforeObserversFor = function(obj, path) {
   return SC.listenersFor(obj, beforeEvent(path));
 };
@@ -136,4 +136,3 @@ SC.notifyObservers = function(obj, keyName) {
 SC.notifyBeforeObservers = function(obj, keyName) {
   notifyObservers(obj, beforeEvent(keyName));
 };
-

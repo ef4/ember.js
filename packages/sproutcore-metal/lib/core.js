@@ -45,8 +45,8 @@ SC.VERSION = '2.0.alpha';
   settings.
 
   @static
-  @type Hash
   @constant
+  @type Hash
 */
 SC.ENV = typeof ENV === 'undefined' ? {} : ENV;
 

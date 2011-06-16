@@ -51,21 +51,24 @@ SC.BENCHMARK_BINDING_SETUP = !!SC.ENV.BENCHMARK_BINDING_SETUP;
 //@endif
 
 /**
-  Default placeholder for multiple values in bindings.
+  Default placeholder for multiple values in bindings. Used by the
+  SC.Binding.single() helper unless you specify an alternative.
 
   @static
   @type String
   @default '@@MULT@@'
+  @see SC.Binding.single
 */
 SC.MULTIPLE_PLACEHOLDER = '@@MULT@@';
 
 /**
-  Default placeholder for empty values in bindings. Used by notEmpty()
-  helper unless you specify an alternative.
+  Default placeholder for empty values in bindings. Used by the
+  SC.Binding.notEmpty() helper unless you specify an alternative.
 
   @static
   @type String
   @default '@@EMPTY@@'
+  @see SC.Binding.notEmpty
 */
 SC.EMPTY_PLACEHOLDER = '@@EMPTY@@';
 

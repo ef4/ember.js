@@ -277,6 +277,7 @@ if (SC.platform.hasPropertyAccessors) {
 
   @static
   @default SC.Descriptor
+  @see SC.defineProperty
 */
 SC.SIMPLE_PROPERTY = new SC.Descriptor();
 SIMPLE_PROPERTY = SC.SIMPLE_PROPERTY;

@@ -30,9 +30,6 @@ var o_create = SC.platform.create;
 
 /**
   @private
-  @static
-  @type String
-  @constant
 
   A unique key used to assign guids and other private metadata to objects.
   If you inspect an object in your browser debugger you will often see these.
@@ -40,6 +37,9 @@ var o_create = SC.platform.create;
 
   On browsers that support it, these properties are added with enumeration
   disabled so they won't show up when you iterate over your properties.
+
+  @static
+  @type String
 */
 SC.GUID_KEY = GUID_KEY;
 
@@ -137,7 +137,7 @@ var META_KEY = SC.GUID_KEY + '_meta';
   The key used to store meta information on object for property observing.
 
   @static
-  @property
+  @type String
 */
 SC.META_KEY = META_KEY;
 

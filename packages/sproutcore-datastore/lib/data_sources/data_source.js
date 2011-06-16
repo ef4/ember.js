@@ -10,7 +10,9 @@ require('sproutcore-runtime');
 /**
   Indicates a value has a mixed state of both on and off.
 
-  @property {String}
+  @static
+  @type String
+  @constant
 */
 SC.MIXED_STATE = '__MIXED__';
 

@@ -53,20 +53,20 @@ if (typeof console === 'undefined') {
 // 
 
 /**
-  @static
-  @type Boolean
-  @default YES
-  @constant
-  
-  Determines whether SproutCore should enhances some built-in object 
-  prototypes to provide a more friendly API.  If enabled, a few methods 
-  will be added to Function, String, and Array.  Object.prototype will not be
+  Determines whether SproutCore should enhances some built-in object
+  prototypes to provide a more friendly API. If enabled, a few methods
+  will be added to `Function`, `String`, and `Array`. Object.prototype will not be
   enhanced, which is the one that causes most troubles for people.
-  
+
   In general we recommend leaving this option set to true since it rarely
-  conflicts with other code.  If you need to turn it off however, you can
+  conflicts with other code. If you need to turn it off however, you can
   define an ENV.ENHANCE_PROTOTYPES config to disable it.
-*/  
+
+  @static
+  @constant
+  @type Boolean
+  @default true
+*/
 SC.EXTEND_PROTOTYPES = (SC.ENV.EXTEND_PROTOTYPES !== false);
 
 // ........................................

@@ -4,21 +4,25 @@
 // License:   Licensed under MIT license (see license.js)
 // ==========================================================================
 
-
-
-
-
-/** @private **/
 var STRING_DASHERIZE_REGEXP = (/[ _]/g);
 var STRING_DASHERIZE_CACHE = {};
 var STRING_DECAMELIZE_REGEXP = (/([a-z])([A-Z])/g);
   
 /**
-  Defines the hash of localized strings for the current language.  Used by 
-  the `SC.String.loc()` helper.  To localize, add string values to this
+  Defines the hash of localized strings for the current language. Used by
+  the `SC.String.loc()` helper. To localize, add string values to this
   hash.
-  
-  @property {String}
+
+  ## Examples
+
+      #js:
+      SC.STRINGS['MyLocalizableString'] = "Here is a localization";
+
+      // later
+      SC.String.loc('MyLocalizableString'); // => "Here is a localization"
+
+  @type Hash
+  @see SC.String.loc
 */
 SC.STRINGS = {};
 

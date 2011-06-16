@@ -4,13 +4,17 @@
 //            Portions ©2008-2011 Apple Inc. All rights reserved.
 // License:   Licensed under MIT license (see license.js)
 // ==========================================================================
+/*globals sc_assert */
 
 require('sproutcore-runtime');
 
 var get = SC.get, set = SC.set;
 
-// simple copy op needed for just this code.
-/** @private */
+/**
+  @private
+
+  Simple copy op needed for just this code.
+*/
 function copy(opts) {
   var ret = {};
   for(var key in opts) {
@@ -19,60 +23,20 @@ function copy(opts) {
   return ret;
 }
 
+var SCANNER_OUT_OF_BOUNDS_ERROR = "Out of bounds.",
+    SCANNER_INT_ERROR = "Not an int.",
+    SCANNER_SKIP_ERROR = "Did not find the string to skip.",
+    SCANNER_SCAN_ARRAY_ERROR = "Did not find any string of the given array to scan.",
+    DATETIME_COMPAREDATE_TIMEZONE_ERROR = "Can't compare the dates of two DateTimes that don't have the same timezone.";
+
+
 /**
-  Standard error thrown by `SC.Scanner` when it runs out of bounds
+  Standard ISO8601 date format.
 
   @static
   @constant
-  @type Error
-*/
-SC.SCANNER_OUT_OF_BOUNDS_ERROR = "Out of bounds.";
-
-/**
-  Standard error thrown by `SC.Scanner` when  you pass a value not an integer.
-
-  @static
-  @constant
-  @type Error
-*/
-SC.SCANNER_INT_ERROR = "Not an int.";
-
-/**
-  Standard error thrown by `SC.Scanner` when it cannot find a string to skip.
-
-  @static
-  @constant
-  @type Error
-*/
-SC.SCANNER_SKIP_ERROR = "Did not find the string to skip.";
-
-/**
-  Standard error thrown by `SC.Scanner` when it can any kind a string in the
-  matching array.
-
-  @static
-  @constant
-  @type Error
-*/
-SC.SCANNER_SCAN_ARRAY_ERROR = "Did not find any string of the given array to scan.";
-
-/**
-  Standard error thrown when trying to compare two dates in different
-  timezones.
-
-  @static
-  @constant
-  @type Error
-*/
-SC.DATETIME_COMPAREDATE_TIMEZONE_ERROR = "Can't compare the dates of two DateTimes that don't have the same timezone.";
-
-/**
-  Standard ISO8601 date format
-
-  @static
   @type String
   @default '%Y-%m-%dT%H:%M:%S%Z'
-  @constant
 */
 SC.DATETIME_ISO8601 = '%Y-%m-%dT%H:%M:%S%Z';
 
@@ -117,13 +81,12 @@ var Scanner = SC.Object.extend({
     accordingly.
 
     @param {Integer} len The amount of characters to read
-    @throws {SC.SCANNER_OUT_OF_BOUNDS_ERROR} If asked to read too many characters
+    @throws {Error} If asked to read too many characters
     @returns {String} The characters
   */
   scan: function(len) {
-    if (this.scanLocation + len > this.length) {
-      throw new Error(SC.SCANNER_OUT_OF_BOUNDS_ERROR);
-    }
+    sc_assert(SCANNER_OUT_OF_BOUNDS_ERROR, this.scanLocation + len <= this.length);
+
     var str = this.string.substr(this.scanLocation, len);
     this.scanLocation += len;
     return str;
@@ -134,7 +97,7 @@ var Scanner = SC.Object.extend({
 
     @param {Integer} min_len The minimum amount of characters to read
     @param {Integer} [max_len] The maximum amount of characters to read (defaults to the minimum)
-    @throws {SC.SCANNER_INT_ERROR} If asked to read non numeric characters
+    @throws {Error} If asked to read non numeric characters
     @returns {Integer} The scanned integer
   */
   scanInt: function(min_len, max_len) {
@@ -142,7 +105,11 @@ var Scanner = SC.Object.extend({
     var str = this.scan(max_len);
     var re = new RegExp("^\\d{" + min_len + "," + max_len + "}");
     var match = str.match(re);
-    if (!match) throw new Error(SC.SCANNER_INT_ERROR);
+
+    if (!match) {
+      throw new SC.Error(SCANNER_INT_ERROR);
+    }
+
     if (match[0].length < max_len) {
       this.scanLocation += match[0].length - max_len;
     }
@@ -153,14 +120,11 @@ var Scanner = SC.Object.extend({
     Attempts to skip a given string.
 
     @param {String} str The string to skip
-    @throws {SC.SCANNER_SKIP_ERROR} If the given string could not be scanned
+    @throws {Error} If the given string could not be scanned
     @returns {Boolean} YES if the given string was successfully scanned, NO otherwise
   */
   skipString: function(str) {
-    if (this.scan(str.length) !== str) {
-      throw new Error(SC.SCANNER_SKIP_ERROR);
-    }
-    
+    sc_assert(SCANNER_SKIP_ERROR, this.scan(str.length) === str);
     return YES;
   },
 
@@ -168,7 +132,7 @@ var Scanner = SC.Object.extend({
     Attempts to scan any string in a given array.
 
     @param {Array} ary the array of strings to scan
-    @throws {SC.SCANNER_SCAN_ARRAY_ERROR} If no string of the given array is found
+    @throws {Error} If no string of the given array is found
     @returns {Integer} The index of the scanned string of the given array
   */
   scanArray: function(ary) {
@@ -178,7 +142,7 @@ var Scanner = SC.Object.extend({
       }
       this.scanLocation -= ary[i].length;
     }
-    throw new Error(SC.SCANNER_SCAN_ARRAY_ERROR);
+    throw new SC.Error(SCANNER_SCAN_ARRAY_ERROR);
   }
 
 });
@@ -1130,10 +1094,9 @@ SC.DateTime.reopenClass(SC.Comparable,
       don't have the same timezone
   */
   compareDate: function(a, b) {
-    if (get(a, 'timezone') !== get(b,'timezone')) {
-      throw new Error(SC.DATETIME_COMPAREDATE_TIMEZONE_ERROR);
-    }
-    
+    sc_assert(DATETIME_COMPAREDATE_TIMEZONE_ERROR,
+        get(a, 'timezone') === get(b,'timezone'));
+
     var ma = get(a.adjust({hour: 0}), 'milliseconds');
     var mb = get(b.adjust({hour: 0}), 'milliseconds');
     return ma < mb ? -1 : ma === mb ? 0 : 1;

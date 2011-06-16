@@ -17,59 +17,58 @@ require('sproutcore-runtime/system/run_loop');
 //@if (debug)
 
 /**
-  @static
-
   Debug parameter you can turn on. This will log all bindings that fire to
   the console. This should be disabled in production code. Note that you
   can also enable this from the console or temporarily.
 
+  @static
   @type Boolean
-  @default NO
+  @default false
 */
 SC.LOG_BINDINGS = false || !!SC.ENV.LOG_BINDINGS;
 
 /**
+  Performance parameter. This will benchmark the time spent firing each
+  binding. To set this property, you can provide a
+  ENV.BENCHMARK_BINDING_NOTIFICATION value.
+
   @static
-
-  Performance paramter. This will benchmark the time spent firing each
-  binding.
-
   @type Boolean
+  @default false
 */
 SC.BENCHMARK_BINDING_NOTIFICATIONS = !!SC.ENV.BENCHMARK_BINDING_NOTIFICATIONS;
 
 /**
-  @static
-
   Performance parameter. This will benchmark the time spend configuring each
   binding.
 
+  @static
   @type Boolean
+  @default false
 */
 SC.BENCHMARK_BINDING_SETUP = !!SC.ENV.BENCHMARK_BINDING_SETUP;
 
 //@endif
 
 /**
-  @static
-
   Default placeholder for multiple values in bindings.
 
+  @static
   @type String
   @default '@@MULT@@'
 */
 SC.MULTIPLE_PLACEHOLDER = '@@MULT@@';
 
 /**
-  @static
-
-  Default placeholder for empty values in bindings.  Used by notEmpty()
+  Default placeholder for empty values in bindings. Used by notEmpty()
   helper unless you specify an alternative.
 
+  @static
   @type String
   @default '@@EMPTY@@'
 */
 SC.EMPTY_PLACEHOLDER = '@@EMPTY@@';
+
 
 // ..........................................................
 // HELPERS

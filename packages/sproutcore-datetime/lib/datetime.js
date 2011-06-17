@@ -59,6 +59,8 @@ SC.DATETIME_ISO8601 = '%Y-%m-%dT%H:%M:%S%Z';
 var Scanner = SC.Object.extend({
 
   /**
+    @private
+
     The string to scan. You usually pass it to the create method:
 
         Scanner.create({string: 'May, 8th'});
@@ -68,6 +70,8 @@ var Scanner = SC.Object.extend({
   string: null,
 
   /**
+    @private
+
     The current scan location. It is incremented by the scanner as the
     characters are processed.
     The default is 0: the beginning of the string.
@@ -77,6 +81,8 @@ var Scanner = SC.Object.extend({
   scanLocation: 0,
 
   /**
+    @private
+
     Reads some characters from the string, and increments the scan location
     accordingly.
 
@@ -93,6 +99,8 @@ var Scanner = SC.Object.extend({
   },
 
   /**
+    @private
+
     Reads some characters from the string and interprets it as an integer.
 
     @param {Integer} min_len The minimum amount of characters to read
@@ -117,6 +125,8 @@ var Scanner = SC.Object.extend({
   },
 
   /**
+    @private
+
     Attempts to skip a given string.
 
     @param {String} str The string to skip
@@ -129,6 +139,8 @@ var Scanner = SC.Object.extend({
   },
 
   /**
+    @private
+
     Attempts to scan any string in a given array.
 
     @param {Array} ary the array of strings to scan

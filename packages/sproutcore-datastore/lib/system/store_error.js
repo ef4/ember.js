@@ -113,6 +113,8 @@ SC.StoreError.desc = function(description, label, value, code) {
 } ;
 
 /**
+  @private
+
   Shorthand form of the SC.StoreError.desc method.
 
   @param description {String} human readable description of the error
@@ -126,6 +128,8 @@ SC.$error = function(description, label, value, c) {
 } ;
 
 /**
+  @private
+
   Returns NO if the passed value is an error object or false.
 
   @param {Object} ret object value
@@ -139,6 +143,8 @@ SC.ok = function(ret) {
 SC.$ok = SC.ok;
 
 /**
+  @private
+
   Returns the value of an object.  If the passed object is an error, returns
   the value associated with the error; otherwise returns the receiver itself.
 

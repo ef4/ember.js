@@ -109,6 +109,30 @@ SC.removeObserver = function(obj, path, target, method) {
   return this;
 };
 
+/**
+  Adds an observer to the object that will be fired before the property at
+  the path is changed.
+
+  ## Examples
+
+      #js:
+      MyApp.objectController = SC.Object.create({
+        name: "Developer"
+      });
+
+      SC.addBeforeObserver(MyApp.objectController, 'name', function() {
+        console.log("Name changing, current value is " + MyApp.objectController.get("name"));
+      });
+
+      MyApp.objectController.set('name', 'Changing Name');
+
+  @param {Object} object The object to observer
+  @param {String} path The path to observe
+  @param {Object} [target] When the callback is invoked, will represent `this`
+  @param {Function} method Method to invoke when the observer fires
+
+  @returns {Object} returns the SC namespace
+*/
 SC.addBeforeObserver = function(obj, path, target, method) {
   path = normalizePath(path);
   SC.addListener(obj, beforeEvent(path), target, method, xformBefore);
@@ -116,10 +140,38 @@ SC.addBeforeObserver = function(obj, path, target, method) {
   return this;
 };
 
+/**
+  Returns an array containing the before observers for the provided
+  path on the object. The array contains arrays representing the
+  observer information, with the target in the first index and the
+  method in the second.
+
+  ## Examples
+
+      #js:
+      var object = SC.Object.create({
+        name: "Jeffrey Lebowski"
+      });
+
+      SC.addBeforeObserver(object, 'name', SC.Object.create(), function() {});
+
+      console.log(SC.beforeObserversFor(object, 'name'));
+
+  @param {Object} object The object to check for before observers
+  @param {String} path The path to check for
+
+  @returns {Array} containing arrays representing the observers
+*/
 SC.beforeObserversFor = function(obj, path) {
   return SC.listenersFor(obj, beforeEvent(path));
 };
 
+/**
+  @param {Object} object The object to remove the observer from
+  @param {String} path The path on the object to remove the observer for
+  @param {Object} [target] Target being used for the observer
+  @param {Function|String} Name (wrap in square brackets if optional) Description}
+*/
 SC.removeBeforeObserver = function(obj, path, target, method) {
   path = normalizePath(path);
   SC.unwatch(obj, path);

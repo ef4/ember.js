@@ -127,8 +127,10 @@ test("should escape HTML in normal mustaches", function() {
 
   view.createElement();
   equals(view.$('b').length, 0, "does not create an element");
+  equals(view.$().text(), 'you need to be more <b>bold</b>', "inserts entities, not elements");
 
-  set(view, 'output', "you are so <i>super</i>");
+  SC.run(function() { set(view, 'output', "you are so <i>super</i>"); });
+  equals(view.$().text(), 'you are so <i>super</i>', "updates with entities, not elements");
   equals(view.$('i').length, 0, "does not create an element when value is updated");
 });
 
@@ -950,12 +952,12 @@ test("should be able to bind element attributes using {{bindAttr}}", function() 
   equals(view.$('img').attr('alt'), "The SproutCore Logo", "updates alt attribute when content object is a hash");
 
   SC.run(function() {
-    set(view, 'content', {
+    set(view, 'content', SC.Object.create({
       url: "http://www.sproutcore.com/assets/images/logo.png",
-      title: function() {
+      title: SC.computed(function() {
         return "Nanananana SproutCore!";
-      }
-    });
+      })
+    }));
   });
 
   equals(view.$('img').attr('alt'), "Nanananana SproutCore!", "updates alt attribute when title property is computed");
@@ -1089,3 +1091,40 @@ test("should be able to output a property without binding", function(){
 
   equals(view.$('div').html(), "No spans here, son.");
 });
+
+module("Templates redrawing and bindings", {
+  setup: function(){
+    MyApp = SC.Object.create({});
+  },
+  teardown: function(){
+    window.MyApp = null;
+  }
+})
+test("should be able to update when bound property updates", function(){
+  MyApp.set('controller', SC.Object.create({name: 'first'}))
+  
+  var View = SC.View.extend({
+    template: SC.Handlebars.compile('<i>{{value.name}}, {{computed}}</i>'),
+    valueBinding: 'MyApp.controller',
+    computed: function(){
+      return this.getPath('value.name') + ' - computed';
+    }.property('value')
+  });
+  
+  var view = View.create();
+  view.createElement();
+  
+  SC.run.sync();
+  
+  SC.run(function(){
+    MyApp.set('controller', SC.Object.create({
+      name: 'second'
+    }))
+  })
+  
+  
+  equals(view.get('computed'), "second - computed", "view computed properties correctly update");
+  equals(view.$('i').text(), 'second, second - computed', "view rerenders when bound properties change");
+  
+})
+

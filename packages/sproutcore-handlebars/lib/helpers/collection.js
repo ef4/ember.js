@@ -22,6 +22,9 @@ Handlebars.registerHelper('collection', function(path, options) {
   if (path && path.data && path.data.isRenderData) {
     options = path;
     path = undefined;
+    sc_assert("You cannot pass more than one argument to the collection helper", arguments.length === 1);
+  } else {
+    sc_assert("You cannot pass more than one argument to the collection helper", arguments.length === 2);
   }
 
   var fn = options.fn;
@@ -66,7 +69,7 @@ Handlebars.registerHelper('collection', function(path, options) {
     delete options.fn;
   }
 
-  if (inverse !== Handlebars.VM.noop) {
+  if (inverse && inverse !== Handlebars.VM.noop) {
     hash.emptyView = SC.View.extend({
       template: inverse,
       tagName: itemHash.tagName

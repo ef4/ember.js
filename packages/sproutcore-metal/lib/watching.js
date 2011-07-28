@@ -85,7 +85,7 @@ function addChainWatcher(obj, keyName, node) {
   if (!nodes || nodes.__scproto__ !== obj) {
     nodes = m.chainWatchers = { __scproto__: obj };
   }
-  
+
   if (!nodes[keyName]) nodes[keyName] = {};
   nodes[keyName][guidFor(node)] = node;
   SC.watch(obj, keyName);
@@ -126,22 +126,28 @@ function isProto(pvalue) {
 // pass null for parent and key and object for value.
 var ChainNode = function(parent, key, value, separator) {
   var obj;
-  
   this._parent = parent;
   this._key    = key;
   this._watching = value===undefined;
-  this._value  = value || (parent._value && !isProto(parent._value) && get(parent._value, key));
+  this._value  = value;
   this._separator = separator || '.';
   this._paths = {};
-
   if (this._watching) {
-    this._object = parent._value;
+    this._object = parent.value();
     if (this._object) addChainWatcher(this._object, this._key, this);
   }
 };
 
 
 var Wp = ChainNode.prototype;
+
+Wp.value = function() {
+  if (this._value === undefined && this._watching){
+    var obj = this._parent.value();
+    this._value = (obj && !isProto(obj)) ? get(obj, this._key) : undefined;
+  }
+  return this._value;
+};
 
 Wp.destroy = function() {
   if (this._watching) {
@@ -166,11 +172,11 @@ Wp.copy = function(obj) {
 // path.
 Wp.add = function(path) {
   var obj, tuple, key, src, separator, paths;
-  
+
   paths = this._paths;
   paths[path] = (paths[path] || 0) + 1 ;
-  
-  obj = this._value;
+
+  obj = this.value();
   tuple = normalizeTuple(obj, path);
   if (tuple[0] && (tuple[0] === obj)) {
     path = tuple[1];
@@ -182,14 +188,14 @@ Wp.add = function(path) {
   } else if (!tuple[0]) {
     pendingQueue.push([this, path]);
     return;
-    
+
   } else {
     src  = tuple[0];
     key  = path.slice(0, 0-(tuple[1].length+1));
     separator = path.slice(key.length, key.length+1);
     path = tuple[1];
   }
-  
+
   this.chain(key, path, src, separator);
 };
 
@@ -201,19 +207,19 @@ Wp.remove = function(path) {
   paths = this._paths;
   if (paths[path] > 0) paths[path]--;
 
-  obj = this._value;
+  obj = this.value();
   tuple = normalizeTuple(obj, path);
   if (tuple[0] === obj) {
     path = tuple[1];
     key  = firstKey(path);
     path = path.slice(key.length+1);
-    
+
   } else {
     src  = tuple[0];
     key  = path.slice(0, 0-(tuple[1].length+1));
     path = tuple[1];
   }
-  
+
   this.unchain(key, path);
 };
 
@@ -268,13 +274,13 @@ Wp.willChange = function() {
 
 Wp.chainWillChange = function(chain, path, depth) {
   if (this._key) path = this._key+this._separator+path;
-  
+
   if (this._parent) {
     this._parent.chainWillChange(this, path, depth+1);
   } else {
-    if (depth>1) SC.propertyWillChange(this._value, path);
+    if (depth>1) SC.propertyWillChange(this.value(), path);
     path = 'this.'+path;
-    if (this._paths[path]>0) SC.propertyWillChange(this._value, path);
+    if (this._paths[path]>0) SC.propertyWillChange(this.value(), path);
   }
 };
 
@@ -283,22 +289,22 @@ Wp.chainDidChange = function(chain, path, depth) {
   if (this._parent) {
     this._parent.chainDidChange(this, path, depth+1);
   } else {
-    if (depth>1) SC.propertyDidChange(this._value, path);
+    if (depth>1) SC.propertyDidChange(this.value(), path);
     path = 'this.'+path;
-    if (this._paths[path]>0) SC.propertyDidChange(this._value, path);
+    if (this._paths[path]>0) SC.propertyDidChange(this.value(), path);
   }
 };
 
 Wp.didChange = function() {
-  // update my own value first.
+  // invalidate my own value first.
   if (this._watching) {
-    var obj = this._parent._value;
+    var obj = this._parent.value();
     if (obj !== this._object) {
       removeChainWatcher(this._object, this._key, this);
       this._object = obj;
       addChainWatcher(obj, this._key, this);
     }
-    this._value  = obj && !isProto(obj) ? get(obj, this._key) : undefined;
+    this._value  = undefined;
   }
   
   // then notify chains...
@@ -321,7 +327,7 @@ function chainsFor(obj) {
   var m   = meta(obj), ret = m.chains;
   if (!ret) {
     ret = m.chains = new ChainNode(null, null, obj);
-  } else if (ret._value !== obj) {
+  } else if (ret.value() !== obj) {
     ret = m.chains = ret.copy(obj);
   }
   return ret ;
@@ -437,7 +443,7 @@ SC.rewatch = function(obj) {
   }  
 
   // make sure any chained watchers update.
-  if (chains && chains._value !== obj) chainsFor(obj);
+  if (chains && chains.value() !== obj) chainsFor(obj);
 
   // if the object has bindings then sync them..
   if (bindings && m.proto!==obj) {

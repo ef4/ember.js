@@ -124,7 +124,7 @@ var get = SC.get, getPath = SC.getPath, fmt = SC.String.fmt;
   @param {Hash} options
   @returns {String} HTML string
 */
-Handlebars.registerHelper('with', function(context, options) {
+SC.Handlebars.registerHelper('with', function(context, options) {
   sc_assert("You must pass exactly one argument to the with helper", arguments.length == 2);
   sc_assert("You must pass a block to the with helper", options.fn && options.fn !== Handlebars.VM.noop);
 

@@ -154,7 +154,7 @@ SC.Handlebars.registerHelper('with', function(context, options) {
   @param {Hash} options
   @returns {String} HTML string
 */
-Handlebars.registerHelper('if', function(context, options) {
+SC.Handlebars.registerHelper('if', function(context, options) {
   sc_assert("You must pass exactly one argument to the if helper", arguments.length == 2);
   sc_assert("You must pass a block to the if helper", options.fn && options.fn !== Handlebars.VM.noop);
 
@@ -167,7 +167,7 @@ Handlebars.registerHelper('if', function(context, options) {
   @param {Hash} options
   @returns {String} HTML string
 */
-Handlebars.registerHelper('unless', function(context, options) {
+SC.Handlebars.registerHelper('unless', function(context, options) {
   sc_assert("You must pass exactly one argument to the unless helper", arguments.length == 2);
   sc_assert("You must pass a block to the unless helper", options.fn && options.fn !== Handlebars.VM.noop);
 

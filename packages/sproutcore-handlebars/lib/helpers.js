@@ -9,3 +9,5 @@ require("sproutcore-handlebars/helpers/collection");
 require("sproutcore-handlebars/helpers/view");
 require("sproutcore-handlebars/helpers/unbound");
 require("sproutcore-handlebars/helpers/debug");
+require("sproutcore-handlebars/helpers/each");
+require("sproutcore-handlebars/helpers/template");

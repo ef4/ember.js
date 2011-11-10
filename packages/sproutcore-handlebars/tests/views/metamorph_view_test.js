@@ -31,7 +31,7 @@ test("a Metamorph view is not a view's parentView", function() {
     }
   });
 
-  metamorphView = SC.MetamorphView.create({
+  metamorphView = SC.View.create(SC.Metamorph, {
     render: function(buffer) {
       buffer.push("<h2>Meta</h2>");
       this.appendChild(childView);
@@ -59,7 +59,7 @@ module("Metamorph views correctly handle DOM", {
       }
     });
 
-    metamorphView = SC.MetamorphView.create({
+    metamorphView = SC.View.create(SC.Metamorph, {
       powerRanger: "Jason",
 
       render: function(buffer) {
@@ -118,11 +118,11 @@ test("a metamorph view calls its childrens' willInsertElement and didInsertEleme
       template: SC.Handlebars.compile('<div id="do-i-exist"></div>'),
 
       willInsertElement: function(){
-	willInsertElementCalled = true;
+    willInsertElementCalled = true;
       },
       didInsertElement: function(){
-	didInsertElementCalled = true;
-	didInsertElementSawElement = (this.$('div').length == 1)
+    didInsertElementCalled = true;
+    didInsertElementSawElement = (this.$('div').length == 1)
       }
     }),
 
@@ -143,4 +143,8 @@ test("a metamorph view calls its childrens' willInsertElement and didInsertEleme
 
   parentView.destroy();
 
+<<<<<<< HEAD
 });
+=======
+});
+>>>>>>> upstream

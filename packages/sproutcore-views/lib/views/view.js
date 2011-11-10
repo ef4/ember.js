@@ -291,13 +291,13 @@ SC.View = SC.Object.extend(
 
   invokeForState: function(name) {
     var parent = this, states = parent.states;
+    var stateName = get(this, 'state'), state;
 
     while (states) {
-      var stateName = get(this, 'state'),
-          state     = states[stateName];
+      state = states[stateName];
 
-      if (state) {
-        var fn = state[name] || states["default"][name];
+      while (state) {
+        var fn = state[name];
 
         if (fn) {
           var args = Array.prototype.slice.call(arguments, 1);
@@ -305,6 +305,8 @@ SC.View = SC.Object.extend(
 
           return fn.apply(this, args);
         }
+
+        state = state.parentState;
       }
 
       states = states.parent;
@@ -512,7 +514,7 @@ SC.View = SC.Object.extend(
     } else {
       return this.invokeForState('getElement');
     }
-  }.property('_parentView', 'state').cacheable(),
+  }.property('_parentView').cacheable(),
 
   /**
     Returns a jQuery object for this view's element. If you pass in a selector
@@ -545,8 +547,11 @@ SC.View = SC.Object.extend(
 
   /** @private */
   forEachChildView: function(callback) {
-    var childViews = get(this, '_childViews'),
-        len = get(childViews, 'length'),
+    var childViews = get(this, '_childViews');
+
+    if (!childViews) { return this; }
+
+    var len = get(childViews, 'length'),
         view, idx;
 
     for(idx = 0; idx < len; idx++) {
@@ -678,7 +683,7 @@ SC.View = SC.Object.extend(
     Creates a DOM representation of the view and all of its
     child views by recursively calling the `render()` method.
 
-    After the element has been created, `didCreateElement` will
+    After the element has been created, `didInsertElement` will
     be called on this view and all of its child views.
 
     @returns {SC.View} receiver
@@ -762,7 +767,7 @@ SC.View = SC.Object.extend(
     chance to clean up any event handlers, etc.
 
     If you write a willDestroyElement() handler, you can assume that your
-    didCreateElement() handler was called earlier for the same element.
+    didInsertElement() handler was called earlier for the same element.
 
     Normally you will not call or override this method yourself, but you may
     want to implement the above callbacks when it is run.
@@ -1119,17 +1124,19 @@ SC.View = SC.Object.extend(
 
     // destroy the element -- this will avoid each child view destroying
     // the element over and over again...
-    this.destroyElement();
+    if (!this.removedFromDOM) { this.destroyElement(); }
 
     // remove from parent if found. Don't call removeFromParent,
     // as removeFromParent will try to remove the element from
     // the DOM again.
     if (parent) { parent.removeChild(this); }
+
     SC.Descriptor.setup(this, 'state', 'destroyed');
 
     this._super();
 
     for (var i=childLen-1; i>=0; i--) {
+      childViews[i].removedFromDOM = true;
       childViews[i].destroy();
     }
 
@@ -1218,6 +1225,24 @@ SC.View.reopen({
   states: SC.View.states,
   domManagerClass: SC.Object.extend({
     view: this,
+
+    prepend: function(childView) {
+      var view = get(this, 'view');
+
+      childView._insertElementLater(function() {
+        var element = view.$();
+        element.prepend(childView.$());
+      });
+    },
+
+    after: function(nextView) {
+      var view = get(this, 'view');
+
+      nextView._insertElementLater(function() {
+        var element = view.$();
+        element.after(nextView.$());
+      });
+    },
 
     replace: function() {
       var view = get(this, 'view');

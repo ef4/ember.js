@@ -55,16 +55,23 @@ var get = SC.get, getPath = SC.getPath, set = SC.set, fmt = SC.String.fmt;
       view.appendChild(bindView);
 
       var observer = function() {
-        SC.run.once(function() { bindView.rerender(); });
+        SC.run.once(function() {
+          // Double check since sometimes the view gets destroyed after this observer is already queued
+          if (!get(bindView, 'isDestroyed')) { bindView.rerender(); }
+        });
       };
 
-      set(bindView, 'removeObserver', function() {
-        SC.removeObserver(ctx, property, observer);
-      });
-
       // Observes the given property on the context and
-      // tells the SC._BindableSpan to re-render.
-      SC.addObserver(ctx, property, observer);
+      // tells the SC._BindableSpan to re-render. If property
+      // is an empty string, we are printing the current context
+      // object ({{this}}) so updating it is not our responsibility.
+      if (property !== '') {
+        set(bindView, 'removeObserver', function() {
+          SC.removeObserver(ctx, property, observer);
+        });
+
+        SC.addObserver(ctx, property, observer);
+      }
     } else {
       // The object is not observable, so just render it out and
       // be done with it.
@@ -92,10 +99,12 @@ var get = SC.get, getPath = SC.getPath, set = SC.set, fmt = SC.String.fmt;
     @param {Function} fn Context to provide for rendering
     @returns {String} HTML string
   */
-  Handlebars.registerHelper('bind', function(property, fn) {
+  SC.Handlebars.registerHelper('bind', function(property, fn) {
     sc_assert("You cannot pass more than one argument to the bind helper", arguments.length <= 2);
 
-    return bind.call(this, property, fn, false, function(result) {
+    var context = (fn.contexts && fn.contexts[0]) || this;
+
+    return bind.call(context, property, fn, false, function(result) {
       return !SC.none(result);
     });
   });
@@ -114,8 +123,10 @@ var get = SC.get, getPath = SC.getPath, set = SC.set, fmt = SC.String.fmt;
     @param {Function} fn Context to provide for rendering
     @returns {String} HTML string
   */
-  Handlebars.registerHelper('boundIf', function(property, fn) {
-    return bind.call(this, property, fn, true, function(result) {
+  SC.Handlebars.registerHelper('boundIf', function(property, fn) {
+    var context = (fn.contexts && fn.contexts[0]) || this;
+
+    return bind.call(context, property, fn, true, function(result) {
       if (SC.typeOf(result) === 'array') {
         return get(result, 'length') !== 0;
       } else {
@@ -135,7 +146,7 @@ SC.Handlebars.registerHelper('with', function(context, options) {
   sc_assert("You must pass exactly one argument to the with helper", arguments.length == 2);
   sc_assert("You must pass a block to the with helper", options.fn && options.fn !== Handlebars.VM.noop);
 
-  return Handlebars.helpers.bind.call(options.contexts[0], context, options);
+  return SC.Handlebars.helpers.bind.call(options.contexts[0], context, options);
 });
 
 
@@ -149,7 +160,7 @@ SC.Handlebars.registerHelper('if', function(context, options) {
   sc_assert("You must pass exactly one argument to the if helper", arguments.length == 2);
   sc_assert("You must pass a block to the if helper", options.fn && options.fn !== Handlebars.VM.noop);
 
-  return Handlebars.helpers.boundIf.call(options.contexts[0], context, options);
+  return SC.Handlebars.helpers.boundIf.call(options.contexts[0], context, options);
 });
 
 /**
@@ -167,7 +178,7 @@ SC.Handlebars.registerHelper('unless', function(context, options) {
   options.fn = inverse;
   options.inverse = fn;
 
-  return Handlebars.helpers.boundIf.call(options.contexts[0], context, options);
+  return SC.Handlebars.helpers.boundIf.call(options.contexts[0], context, options);
 });
 
 /**
@@ -180,7 +191,7 @@ SC.Handlebars.registerHelper('unless', function(context, options) {
   @param {Hash} options
   @returns {String} HTML string
 */
-Handlebars.registerHelper('bindAttr', function(options) {
+SC.Handlebars.registerHelper('bindAttr', function(options) {
 
   var attrs = options.hash;
 
@@ -273,7 +284,7 @@ Handlebars.registerHelper('bindAttr', function(options) {
 
   // Add the unique identifier
   ret.push('data-handlebars-id="' + dataId + '"');
-  return new Handlebars.SafeString(ret.join(' '));
+  return new SC.Handlebars.SafeString(ret.join(' '));
 });
 
 /**

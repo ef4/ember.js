@@ -66,7 +66,7 @@ SC.CollectionView = SC.ContainerView.extend(
     var content = get(this, 'content');
 
     if (content) {
-      sc_assert(fmt("an ArrayController's content must implement SC.Array. You passed %@", [content]), content.addArrayObserver != null);
+      sc_assert(fmt("an SC.CollectionView's content must implement SC.Array. You passed %@", [content]), content.addArrayObserver != null);
       content.addArrayObserver(this);
     }
 
@@ -154,9 +154,9 @@ SC.CollectionView = SC.ContainerView.extend(
     var view = this._super(view, attrs);
 
     var itemTagName = get(view, 'tagName');
-    var tagName = itemTagName || SC.CollectionView.CONTAINER_MAP[get(this, 'tagName')];
+    var tagName = itemTagName == null ? SC.CollectionView.CONTAINER_MAP[get(this, 'tagName')] : itemTagName;
 
-    set(view, 'tagName', tagName || null);
+    set(view, 'tagName', tagName);
 
     return view;
   }

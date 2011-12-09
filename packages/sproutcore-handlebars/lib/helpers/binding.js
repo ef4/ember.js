@@ -21,8 +21,24 @@ var get = SC.get, getPath = SC.getPath, set = SC.set, fmt = SC.String.fmt;
         view = data.view,
         ctx  = this;
 
+    // If the view supports batch rendering, we can avoid creating a
+    // new child view and just stick our dependency into the parent.
+    if (view.addBatchDependency){
+      view.addBatchDependency(this, property);
+      var result = getPath(this, property);
+      if (!fn){
+        if (result == null) { result = ""; } else { result = String(result); }
+        if (options.hash.escaped) { result = Handlebars.Utils.escapeExpression(result); }
+        data.buffer.push(result);
+      } else {
+	var templateContext = preserveContext ? this : result, 
+  	    template = shouldDisplay(result) ? fn : inverse;
+	if (template){ data.buffer.push(template(templateContext)) }
+      }
+
+    }
     // Set up observers for observable objects
-    if ('object' === typeof this) {
+    else if ('object' === typeof this) {
       // Create the view that will wrap the output of this template/property 
       // and add it to the nearest view's childViews array.
       // See the documentation of SC._BindableSpanView for more.

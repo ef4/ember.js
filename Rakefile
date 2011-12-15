@@ -72,6 +72,7 @@ task :build => ["ember:metal", "ember:runtime", "ember:handlebars", "ember:views
 
 distributions = {
   "ember" => ["handlebars", "ember-metal", "ember-runtime", "ember-views", "ember-states", "metamorph", "ember-handlebars"],
+  "ember-no-dom" => ["ember-metal", "ember-runtime"],
   "ember-datetime" => ["ember-datetime"]
 }
 

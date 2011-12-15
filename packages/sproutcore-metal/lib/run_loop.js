@@ -62,6 +62,9 @@ K.prototype = RunLoop.prototype;
 RunLoop.prototype = {
   end: function() {
     this.flush();
+  },
+
+  prev: function() {
     return this._prev;
   },
 
@@ -198,7 +201,12 @@ SC.run.begin = function() {
 */
 SC.run.end = function() {
   sc_assert('must have a current run loop', run.currentRunLoop);
-  run.currentRunLoop = run.currentRunLoop.end();
+  try {
+    run.currentRunLoop.end();
+  }
+  finally {
+    run.currentRunLoop = run.currentRunLoop.prev();
+  }
 };
 
 /**

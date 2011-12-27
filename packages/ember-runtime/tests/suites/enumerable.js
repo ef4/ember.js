@@ -271,15 +271,18 @@ EnumerableTests.reopenClass({
 Ember.EnumerableTests = EnumerableTests;
 Ember.EnumerableTests.ObserverClass = ObserverClass;
 
+require('./enumerable/compact');
 require('./enumerable/contains');
 require('./enumerable/every');
 require('./enumerable/filter');
 require('./enumerable/find');
 require('./enumerable/firstObject');
 require('./enumerable/forEach');
+require('./enumerable/mapProperty');
 require('./enumerable/invoke');
 require('./enumerable/lastObject');
 require('./enumerable/map');
+require('./enumerable/reduce');
 require('./enumerable/some');
 require('./enumerable/toArray');
 require('./enumerable/uniq');

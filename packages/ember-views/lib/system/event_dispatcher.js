@@ -107,7 +107,7 @@ Ember.EventDispatcher = Ember.Object.extend(
     var self = this;
 
     rootElement.delegate('.ember-view', event + '.ember', function(evt, triggeringManager) {
-
+      try{
       var view = Ember.View.views[this.id],
           result = true, manager = null;
 
@@ -122,6 +122,12 @@ Ember.EventDispatcher = Ember.Object.extend(
       }
 
       return result;
+      } catch (err) {
+	if (window.ErrorTrap && ErrorTrap.onerror){
+	  ErrorTrap.onerror(err)
+	}
+	throw err;
+      }
     });
   },
 

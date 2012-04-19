@@ -35,13 +35,13 @@ var EmberHandlebars = Ember.Handlebars, helpers = EmberHandlebars.helpers;
       view.addBatchDependency(this, property);
       var result = getPath(this, property);
       if (!fn){
-        if (result == null) { result = ""; } else { result = String(result); }
+        if (result === null) { result = ""; } else { result = String(result); }
         if (options.hash.escaped) { result = Handlebars.Utils.escapeExpression(result); }
         data.buffer.push(result);
       } else {
-	var templateContext = preserveContext ? this : result, 
-  	    template = shouldDisplay(result) ? fn : inverse;
-	if (template){ data.buffer.push(template(templateContext)) }
+        var templateContext = preserveContext ? this : result, 
+        template = shouldDisplay(result) ? fn : inverse;
+        if (template){ data.buffer.push(template(templateContext)); }
       }
 
     }

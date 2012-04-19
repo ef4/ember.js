@@ -131,10 +131,10 @@ Ember.EventDispatcher = Ember.Object.extend(
 
       return result;
       } catch (err) {
-	if (window.ErrorTrap && ErrorTrap.onerror){
-	  ErrorTrap.onerror(err)
-	}
-	throw err;
+        if (window.ErrorTrap && window.ErrorTrap.onerror){
+          window.ErrorTrap.onerror(err);
+        }
+        throw err;
       }
     });
 

@@ -1,3 +1,5 @@
+/*global ViewTest:true*/
+
 var view;
 
 module("views/view/view_lifecycle_test - pre-render", {
@@ -37,7 +39,7 @@ test("should create and append a DOM element after bindings have synced", functi
     view.append();
   });
 
-  equals(view.$().text(), 'controllerPropertyValue', "renders and appends after bindings have synced");
+  equal(view.$().text(), 'controllerPropertyValue', "renders and appends after bindings have synced");
   window.ViewTest = undefined;
 });
 
@@ -61,7 +63,7 @@ test("should not affect rendering if rerender is called before initial render ha
     view.append();
   });
 
-  equals(view.$().text(), "Rerender me!", "renders correctly if rerender is called first");
+  equal(view.$().text(), "Rerender me!", "renders correctly if rerender is called first");
 });
 
 test("should not affect rendering if destroyElement is called before initial render happens", function() {
@@ -74,7 +76,7 @@ test("should not affect rendering if destroyElement is called before initial ren
     view.append();
   });
 
-  equals(view.$().text(), "Don't destroy me!", "renders correctly if destroyElement is called first");
+  equal(view.$().text(), "Don't destroy me!", "renders correctly if destroyElement is called first");
 });
 
 module("views/view/view_lifecycle_test - in render", {
@@ -106,37 +108,43 @@ test("appendChild should work inside a template", function() {
     view.appendTo("#qunit-fixture");
   });
 
-  ok(view.$('h1').length == 1 && view.$('div').length == 2,
+  ok(view.$('h1').length === 1 && view.$('div').length === 2,
      "The appended child is visible");
 });
 
 test("rerender should work inside a template", function() {
-  Ember.run(function() {
-    var renderCount = 0;
-    view = Ember.View.create({
-      template: function(context, options) {
-        var view = options.data.view;
+  try {
+    Ember.TESTING_DEPRECATION = true;
 
-        var child1 = view.appendChild(Ember.View, {
-          template: function(context, options) {
-            renderCount++;
-            options.data.buffer.push(String(renderCount));
-          }
-        });
+    Ember.run(function() {
+      var renderCount = 0;
+      view = Ember.View.create({
+        template: function(context, options) {
+          var view = options.data.view;
 
-        var child2 = view.appendChild(Ember.View, {
-          template: function(context, options) {
-            options.data.buffer.push("Inside child2");
-            child1.rerender();
-          }
-        });
-      }
+          var child1 = view.appendChild(Ember.View, {
+            template: function(context, options) {
+              renderCount++;
+              options.data.buffer.push(String(renderCount));
+            }
+          });
+
+          var child2 = view.appendChild(Ember.View, {
+            template: function(context, options) {
+              options.data.buffer.push("Inside child2");
+              child1.rerender();
+            }
+          });
+        }
+      });
+
+      view.appendTo("#qunit-fixture");
     });
+  } finally {
+    Ember.TESTING_DEPRECATION = false;
+  }
 
-    view.appendTo("#qunit-fixture");
-  });
-
-  ok(view.$('div:contains(2), div:contains(Inside child2').length == 2,
+  ok(view.$('div:contains(2), div:contains(Inside child2').length === 2,
      "Rerendering a view causes it to rerender");
 });
 
@@ -178,14 +186,14 @@ test("should replace DOM representation if rerender() is called after element is
     view.append();
   });
 
-  equals(view.$().text(), "Do not taunt happy fun sphere", "precond - creates DOM element");
+  equal(view.$().text(), "Do not taunt happy fun sphere", "precond - creates DOM element");
 
   view.set('shape', 'ball');
   Ember.run(function() {
     view.rerender();
   });
 
-  equals(view.$().text(), "Do not taunt happy fun ball", "rerenders DOM element when rerender() is called");
+  equal(view.$().text(), "Do not taunt happy fun ball", "rerenders DOM element when rerender() is called");
 });
 
 test("should destroy DOM representation when destroyElement is called", function() {

@@ -23,10 +23,15 @@ Ember.EventDispatcher = Ember.Object.extend(
     The root DOM element to which event listeners should be attached. Event
     listeners will be attached to the document unless this is overridden.
 
+    Can be specified as a DOMElement or a selector string.
+
+    The default body is a string since this may be evaluated before document.body
+    exists in the DOM.
+
     @type DOMElement
-    @default document
+    @default 'body'
   */
-  rootElement: document,
+  rootElement: 'body',
 
   /**
     @private
@@ -35,7 +40,7 @@ Ember.EventDispatcher = Ember.Object.extend(
 
     This will be called after the browser sends a DOMContentReady event. By
     default, it will set up all of the listeners on the document body. If you
-    would like to register the listeners on different element, set the event
+    would like to register the listeners on a different element, set the event
     dispatcher's `root` property.
   */
   setup: function(addedEvents) {
@@ -49,6 +54,7 @@ Ember.EventDispatcher = Ember.Object.extend(
       keypress    : 'keyPress',
       mousedown   : 'mouseDown',
       mouseup     : 'mouseUp',
+      contextmenu : 'contextMenu',
       click       : 'click',
       dblclick    : 'doubleClick',
       mousemove   : 'mouseMove',
@@ -67,7 +73,7 @@ Ember.EventDispatcher = Ember.Object.extend(
       dragend     : 'dragEnd'
     };
 
-    jQuery.extend(events, addedEvents || {});
+    Ember.$.extend(events, addedEvents || {});
 
     var rootElement = Ember.$(get(this, 'rootElement'));
 
@@ -76,6 +82,8 @@ Ember.EventDispatcher = Ember.Object.extend(
     ember_assert('You cannot make a new Ember.Application using a root element that is an ancestor of an existing Ember.Application', !rootElement.find('.ember-application').length);
 
     rootElement.addClass('ember-application');
+
+    ember_assert('Unable to add "ember-application" class to rootElement. Make sure you set rootElement to the body or an element in the body.', rootElement.is('.ember-application'));
 
     for (event in events) {
       if (events.hasOwnProperty(event)) {
@@ -123,6 +131,16 @@ Ember.EventDispatcher = Ember.Object.extend(
 
       return result;
     });
+
+    rootElement.delegate('[data-ember-action]', event + '.ember', function(evt) {
+      var actionId = Ember.$(evt.currentTarget).attr('data-ember-action'),
+          action   = Ember.Handlebars.ActionHelper.registeredActions[actionId],
+          handler  = action.handler;
+
+      if (action.eventName === eventName) {
+        return handler(evt);
+      }
+    });
   },
 
   /** @private */
@@ -143,7 +161,7 @@ Ember.EventDispatcher = Ember.Object.extend(
   _dispatchEvent: function(object, evt, eventName, view) {
     var result = true;
 
-    handler = object[eventName];
+    var handler = object[eventName];
     if (Ember.typeOf(handler) === 'function') {
       result = handler.call(object, evt, view);
       evt.stopPropagation();
@@ -157,17 +175,9 @@ Ember.EventDispatcher = Ember.Object.extend(
 
   /** @private */
   _bubbleEvent: function(view, evt, eventName) {
-    var result = true, handler,
-        self = this;
-
-      Ember.run(function() {
-        handler = view[eventName];
-        if (Ember.typeOf(handler) === 'function') {
-          result = handler.call(view, evt);
-        }
-      });
-
-    return result;
+    return Ember.run(function() {
+      return view.handleEvent(eventName, evt);
+    });
   },
 
   /** @private */

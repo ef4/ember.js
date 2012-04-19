@@ -8,7 +8,7 @@
 
 
 
-  
+
 var get = Ember.get, set = Ember.set;
 
 /**
@@ -71,7 +71,7 @@ Ember.Freezable = Ember.Mixin.create(
 /** @scope Ember.Freezable.prototype */ {
 
   /**
-    Set to YES when the object is frozen.  Use this property to detect whether
+    Set to true when the object is frozen.  Use this property to detect whether
     your object is frozen or not.
 
     @property {Boolean}
@@ -82,7 +82,7 @@ Ember.Freezable = Ember.Mixin.create(
     Freezes the object.  Once this method has been called the object should
     no longer allow any properties to be edited.
 
-    @returns {Object} reciever
+    @returns {Object} receiver
   */
   freeze: function() {
     if (get(this, 'isFrozen')) return this;

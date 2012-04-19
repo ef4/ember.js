@@ -15,12 +15,16 @@ require('ember-metal/array');
 var Mixin, MixinDelegate, REQUIRED, Alias;
 var classToString, superClassString;
 
-var a_map = Array.prototype.map;
+var a_map = Ember.ArrayUtils.map;
+var a_indexOf = Ember.ArrayUtils.indexOf;
+var a_forEach = Ember.ArrayUtils.forEach;
+var a_slice = Array.prototype.slice;
 var EMPTY_META = {}; // dummy for non-writable meta
 var META_SKIP = { __emberproto__: true, __ember_count__: true };
 
 var o_create = Ember.platform.create;
 
+/** @private */
 function meta(obj, writable) {
   var m = Ember.meta(obj, writable!==false), ret = m.mixins;
   if (writable===false) return ret || EMPTY_META;
@@ -34,9 +38,10 @@ function meta(obj, writable) {
   return ret;
 }
 
+/** @private */
 function initMixin(mixin, args) {
   if (args && args.length > 0) {
-    mixin.mixins = a_map.call(args, function(x) {
+    mixin.mixins = a_map(args, function(x) {
       if (x instanceof Mixin) return x;
 
       // Note: Manually setup a primitive mixin here.  This is the only
@@ -51,14 +56,17 @@ function initMixin(mixin, args) {
 }
 
 var NATIVES = [Boolean, Object, Number, Array, Date, String];
+/** @private */
 function isMethod(obj) {
   if ('function' !== typeof obj || obj.isMethod===false) return false;
-  return NATIVES.indexOf(obj)<0;
+  return a_indexOf(NATIVES, obj)<0;
 }
 
+/** @private */
 function mergeMixins(mixins, m, descs, values, base) {
   var len = mixins.length, idx, mixin, guid, props, value, key, ovalue, concats;
 
+  /** @private */
   function removeKeys(keyName) {
     delete descs[keyName];
     delete values[keyName];
@@ -107,7 +115,7 @@ function mergeMixins(mixins, m, descs, values, base) {
               value.__ember_observes__ = o;
               value.__ember_observesBefore__ = ob;
             }
-          } else if ((concats && concats.indexOf(key)>=0) || key === 'concatenatedProperties') {
+          } else if ((concats && a_indexOf(concats, key)>=0) || key === 'concatenatedProperties') {
             var baseValue = values[key] || base[key];
             value = baseValue ? baseValue.concat(value) : Ember.makeArray(value);
           }
@@ -124,13 +132,15 @@ function mergeMixins(mixins, m, descs, values, base) {
 
     } else if (mixin.mixins) {
       mergeMixins(mixin.mixins, m, descs, values, base);
-      if (mixin._without) mixin._without.forEach(removeKeys);
+      if (mixin._without) a_forEach(mixin._without, removeKeys);
     }
   }
 }
 
+/** @private */
 var defineProperty = Ember.defineProperty;
 
+/** @private */
 function writableReq(obj) {
   var m = Ember.meta(obj), req = m.required;
   if (!req || (req.__emberproto__ !== obj)) {
@@ -140,10 +150,12 @@ function writableReq(obj) {
   return req;
 }
 
+/** @private */
 function getObserverPaths(value) {
   return ('function' === typeof value) && value.__ember_observes__;
 }
 
+/** @private */
 function getBeforeObserverPaths(value) {
   return ('function' === typeof value) && value.__ember_observesBefore__;
 }
@@ -152,12 +164,19 @@ Ember._mixinBindings = function(obj, key, value, m) {
   return value;
 };
 
+/** @private */
 function applyMixin(obj, mixins, partial) {
   var descs = {}, values = {}, m = Ember.meta(obj), req = m.required;
   var key, willApply, didApply, value, desc;
 
   var mixinBindings = Ember._mixinBindings;
 
+  // Go through all mixins and hashes passed in, and:
+  //
+  // * Handle concatenated properties
+  // * Set up _super wrapping if necessary
+  // * Set up descriptors (simple, watched or computed properties)
+  // * Copying `toString` in broken browsers
   mergeMixins(mixins, meta(obj), descs, values, obj);
 
   if (MixinDelegate.detect(obj)) {
@@ -263,21 +282,24 @@ function applyMixin(obj, mixins, partial) {
 }
 
 Ember.mixin = function(obj) {
-  var args = Array.prototype.slice.call(arguments, 1);
+  var args = a_slice.call(arguments, 1);
   return applyMixin(obj, args, false);
 };
 
 
 /**
   @constructor
-  @name Ember.Mixin
 */
-Mixin = function() { return initMixin(this, arguments); };
+Ember.Mixin = function() { return initMixin(this, arguments); };
 
+/** @private */
+Mixin = Ember.Mixin;
+
+/** @private */
 Mixin._apply = applyMixin;
 
 Mixin.applyPartial = function(obj) {
-  var args = Array.prototype.slice.call(arguments, 1);
+  var args = a_slice.call(arguments, 1);
   return applyMixin(obj, args, true);
 };
 
@@ -316,17 +338,20 @@ Mixin.prototype.reopen = function() {
 
 var TMP_ARRAY = [];
 Mixin.prototype.apply = function(obj) {
-  TMP_ARRAY.length=0;
   TMP_ARRAY[0] = this;
-  return applyMixin(obj, TMP_ARRAY, false);
+  var ret = applyMixin(obj, TMP_ARRAY, false);
+  TMP_ARRAY.length=0;
+  return ret;
 };
 
 Mixin.prototype.applyPartial = function(obj) {
-  TMP_ARRAY.length=0;
   TMP_ARRAY[0] = this;
-  return applyMixin(obj, TMP_ARRAY, true);
+  var ret = applyMixin(obj, TMP_ARRAY, true);
+  TMP_ARRAY.length=0;
+  return ret;
 };
 
+/** @private */
 function _detect(curMixin, targetMixin, seen) {
   var guid = Ember.guidFor(curMixin);
 
@@ -349,10 +374,11 @@ Mixin.prototype.detect = function(obj) {
 
 Mixin.prototype.without = function() {
   var ret = new Mixin(this);
-  ret._without = Array.prototype.slice.call(arguments);
+  ret._without = a_slice.call(arguments);
   return ret;
 };
 
+/** @private */
 function _keys(ret, mixin, seen) {
   if (seen[Ember.guidFor(mixin)]) return;
   seen[Ember.guidFor(mixin)] = true;
@@ -363,7 +389,7 @@ function _keys(ret, mixin, seen) {
       if (props.hasOwnProperty(key)) ret[key] = true;
     }
   } else if (mixin.mixins) {
-    mixin.mixins.forEach(function(x) { _keys(ret, x, seen); });
+    a_forEach(mixin.mixins, function(x) { _keys(ret, x, seen); });
   }
 }
 
@@ -381,6 +407,7 @@ Mixin.prototype.keys = function() {
 var NAME_KEY = Ember.GUID_KEY+'_name';
 var get = Ember.get;
 
+/** @private */
 function processNames(paths, root, seen) {
   var idx = paths.length;
   for(var key in root) {
@@ -400,18 +427,27 @@ function processNames(paths, root, seen) {
   paths.length = idx; // cut out last item
 }
 
+/** @private */
 function findNamespaces() {
   var Namespace = Ember.Namespace, obj;
 
   if (Namespace.PROCESSED) { return; }
 
   for (var prop in window) {
+    //  get(window.globalStorage, 'isNamespace') would try to read the storage for domain isNamespace and cause exception in Firefox.
+    // globalStorage is a storage obsoleted by the WhatWG storage specification. See https://developer.mozilla.org/en/DOM/Storage#globalStorage
+    if (prop === "globalStorage" && window.StorageList && window.globalStorage instanceof window.StorageList) { continue; }
     // Unfortunately, some versions of IE don't support window.hasOwnProperty
     if (window.hasOwnProperty && !window.hasOwnProperty(prop)) { continue; }
 
-    obj = window[prop];
+    try {
+      obj = window[prop];
+    } catch (e) {
+      continue;
+    }
 
     if (obj && get(obj, 'isNamespace')) {
+      ember_deprecate("Namespaces should not begin with lowercase.", /^[A-Z]/.test(prop));
       obj[NAME_KEY] = prop;
     }
   }
@@ -419,6 +455,7 @@ function findNamespaces() {
 
 Ember.identifyNamespaces = findNamespaces;
 
+/** @private */
 superClassString = function(mixin) {
   var superclass = mixin.superclass;
   if (superclass) {
@@ -429,6 +466,7 @@ superClassString = function(mixin) {
   }
 };
 
+/** @private */
 classToString = function() {
   var Namespace = Ember.Namespace, namespace;
 
@@ -485,6 +523,7 @@ Ember.required = function() {
   return REQUIRED;
 };
 
+/** @private */
 Alias = function(methodName) {
   this.methodName = methodName;
 };
@@ -494,16 +533,15 @@ Ember.alias = function(methodName) {
   return new Alias(methodName);
 };
 
-Ember.Mixin = Mixin;
-
-MixinDelegate = Mixin.create({
+Ember.MixinDelegate = Mixin.create({
 
   willApplyProperty: Ember.required(),
   didApplyProperty:  Ember.required()
 
 });
 
-Ember.MixinDelegate = MixinDelegate;
+/** @private */
+MixinDelegate = Ember.MixinDelegate;
 
 
 // ..........................................................
@@ -511,13 +549,13 @@ Ember.MixinDelegate = MixinDelegate;
 //
 
 Ember.observer = function(func) {
-  var paths = Array.prototype.slice.call(arguments, 1);
+  var paths = a_slice.call(arguments, 1);
   func.__ember_observes__ = paths;
   return func;
 };
 
 Ember.beforeObserver = function(func) {
-  var paths = Array.prototype.slice.call(arguments, 1);
+  var paths = a_slice.call(arguments, 1);
   func.__ember_observesBefore__ = paths;
   return func;
 };

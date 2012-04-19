@@ -32,7 +32,7 @@
       parentView.append();
     });
 
-    equals(parentView.$().text(), 'Ember', 'renders the child view after the parent view');
+    equal(parentView.$().text(), 'Ember', 'renders the child view after the parent view');
   });
 
   test("should not duplicate childViews when rerendering in buffer", function() {
@@ -62,13 +62,18 @@
       outer.renderToBuffer();
     });
 
-    equals(middle.getPath('childViews.length'), 2);
+    equal(middle.getPath('childViews.length'), 2);
 
-    Ember.run(function() {
-      middle.rerender();
-    });
+    try {
+      Ember.TESTING_DEPRECATION = true;
+      Ember.run(function() {
+        middle.rerender();
+      });
+    } finally {
+      Ember.TESTING_DEPRECATION = false;
+    }
 
-    equals(middle.getPath('childViews.length'), 2);
+    equal(middle.getPath('childViews.length'), 2);
 
   });
 

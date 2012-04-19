@@ -1,5 +1,3 @@
-require('ember-states/state');
-
 var get = Ember.get, set = Ember.set, getPath = Ember.getPath, setPath = Ember.setPath;
 
 module("Ember.State");
@@ -13,7 +11,7 @@ test("creating a state with substates sets the parentState property", function()
     child: Ember.State.create()
   });
 
-  ok(state.getPath('child.parentState'), state, "A child state gets its parent state");
+  equal(state.getPath('child.parentState'), state, "A child state gets its parent state");
 });
 
 test("a state is passed its state manager when receiving an enter event", function() {
@@ -48,3 +46,77 @@ test("a state is passed its state manager when receiving an enter event", functi
   });
 });
 
+test("a state finds properties that are states and copies them to the states hash", function() {
+  var state1 = Ember.State.create();
+  var state2 = Ember.State.create();
+
+  var superClass = Ember.State.extend({
+    state1: state1
+  });
+
+  var stateInstance = superClass.create({
+    state2: state2
+  });
+
+  var states = get(stateInstance, 'states');
+
+  deepEqual(states, { state1: state1, state2: state2 }, "states should be retrieved from both the instance and its class");
+});
+
+test("a state finds properties that are state classes and instantiates them", function() {
+  var state1 = Ember.State.extend({
+    isState1: true
+  });
+  var state2 = Ember.State.extend({
+    isState2: true
+  });
+
+  var superClass = Ember.State.extend({
+    state1: state1
+  });
+
+  var stateInstance = superClass.create({
+    state2: state2
+  });
+
+  var states = get(stateInstance, 'states');
+
+  equal(get(states.state1, 'isState1'), true, "instantiated first state");
+  equal(get(states.state2, 'isState2'), true, "instantiated second state");
+});
+
+test("states set up proper names on their children", function() {
+  var manager = Ember.StateManager.create({
+    states: {
+      first: Ember.State.extend({
+        insideFirst: Ember.State.extend({
+
+        })
+      })
+    }
+  });
+
+  manager.goToState('first');
+  equal(getPath(manager, 'currentState.path'), 'first');
+
+  manager.goToState('first.insideFirst');
+  equal(getPath(manager, 'currentState.path'), 'first.insideFirst');
+});
+
+test("states with child instances set up proper names on their children", function() {
+  var manager = Ember.StateManager.create({
+    states: {
+      first: Ember.State.create({
+        insideFirst: Ember.State.create({
+
+        })
+      })
+    }
+  });
+
+  manager.goToState('first');
+  equal(getPath(manager, 'currentState.path'), 'first');
+
+  manager.goToState('first.insideFirst');
+  equal(getPath(manager, 'currentState.path'), 'first.insideFirst');
+});

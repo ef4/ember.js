@@ -11,18 +11,19 @@ var set = Ember.set, get = Ember.get;
 
 module("Ember.Application", {
   setup: function() {
-    $("#qunit-fixture").html("<div id='one'><div id='one-child'>HI</div></div><div id='two'>HI</div>");
+    Ember.$("#qunit-fixture").html("<div id='one'><div id='one-child'>HI</div></div><div id='two'>HI</div>");
     application = Ember.Application.create({ rootElement: '#one' });
   },
 
   teardown: function() {
-    application.destroy();
+    Ember.run(function(){ application.destroy(); });
   }
 });
 
 test("you can make a new application in a non-overlapping element", function() {
   var app = Ember.Application.create({ rootElement: '#two' });
   app.destroy();
+  ok(true, "should not raise");
 });
 
 test("you cannot make a new application that is a parent of an existing application", function() {
@@ -40,6 +41,16 @@ test("you cannot make a new application that is a descendent of an existing appl
 test("you cannot make a new application that is a duplicate of an existing application", function() {
   raises(function() {
     Ember.Application.create({ rootElement: '#one' });
+  }, Error);
+});
+
+test("you cannot make two default applications without a rootElement error", function() {
+  // Teardown existing
+  application.destroy();
+
+  application = Ember.Application.create();
+  raises(function() {
+    Ember.Application.create();
   }, Error);
 });
 

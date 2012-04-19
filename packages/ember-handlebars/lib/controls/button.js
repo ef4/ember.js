@@ -13,10 +13,39 @@ Ember.Button = Ember.View.extend(Ember.TargetActionSupport, {
   classNameBindings: ['isActive'],
 
   tagName: 'button',
-  attributeBindings: ['type', 'disabled'],
-  type: 'button',
-  disabled: false,
+
   propagateEvents: false,
+
+  attributeBindings: ['type', 'disabled', 'href'],
+
+  /** @private
+    Overrides TargetActionSupport's targetObject computed
+    property to use Handlebars-specific path resolution.
+  */
+  targetObject: Ember.computed(function() {
+    var target = get(this, 'target'),
+        root = get(this, 'templateContext'),
+        data = get(this, 'templateData');
+
+    if (typeof target !== 'string') { return target; }
+
+    return Ember.Handlebars.getPath(root, target, { data: data });
+  }).property('target').cacheable(),
+
+  // Defaults to 'button' if tagName is 'input' or 'button'
+  type: Ember.computed(function(key, value) {
+    var tagName = this.get('tagName');
+    if (value !== undefined) { this._type = value; }
+    if (this._type !== undefined) { return this._type; }
+    if (tagName === 'input' || tagName === 'button') { return 'button'; }
+  }).property('tagName').cacheable(),
+
+  disabled: false,
+
+  // Allow 'a' tags to act like buttons
+  href: Ember.computed(function() {
+    return this.get('tagName') === 'a' ? '#' : null;
+  }).property('tagName').cacheable(),
 
   mouseDown: function() {
     if (!get(this, 'disabled')) {
@@ -43,7 +72,6 @@ Ember.Button = Ember.View.extend(Ember.TargetActionSupport, {
 
   mouseUp: function(event) {
     if (get(this, 'isActive')) {
-
       // Actually invoke the button's target and action.
       // This method comes from the Ember.TargetActionSupport mixin.
       this.triggerAction();
@@ -53,6 +81,20 @@ Ember.Button = Ember.View.extend(Ember.TargetActionSupport, {
     this._mouseDown = false;
     this._mouseEntered = false;
     return get(this, 'propagateEvents');
+  },
+
+  keyDown: function(event) {
+    // Handle space or enter
+    if (event.keyCode === 13 || event.keyCode === 32) {
+      this.mouseDown();
+    }
+  },
+
+  keyUp: function(event) {
+    // Handle space or enter
+    if (event.keyCode === 13 || event.keyCode === 32) {
+      this.mouseUp();
+    }
   },
 
   // TODO: Handle proper touch behavior.  Including should make inactive when

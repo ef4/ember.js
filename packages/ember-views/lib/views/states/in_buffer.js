@@ -24,21 +24,27 @@ Ember.View.states.inBuffer = {
   // when a view is rendered in a buffer, rerendering it simply
   // replaces the existing buffer with a new one
   rerender: function(view) {
-    var buffer = meta(view)['Ember.View'].buffer;
+    ember_deprecate("Something you did caused a view to re-render after it rendered but before it was inserted into the DOM. Because this is avoidable and the cause of significant performance issues in applications, this behavior is deprecated. If you want to use the debugger to find out what caused this, you can set ENV.RAISE_ON_DEPRECATION to true.");
+
+    view._notifyWillRerender();
 
     view.clearRenderedChildren();
-    view.renderToBuffer(buffer, 'replaceWith');
+    view.renderToBuffer(view.buffer, 'replaceWith');
   },
 
   // when a view is rendered in a buffer, appending a child
   // view will render that view and append the resulting
   // buffer into its buffer.
   appendChild: function(view, childView, options) {
-    var buffer = meta(view)['Ember.View'].buffer;
+    var buffer = view.buffer;
 
     childView = this.createChildView(childView, options);
-    get(view, '_childViews').pushObject(childView);
+    get(view, '_childViews').push(childView);
+
     childView.renderToBuffer(buffer);
+
+    view.propertyDidChange('childViews');
+
     return childView;
   },
 
@@ -51,6 +57,10 @@ Ember.View.states.inBuffer = {
     view.transitionTo('preRender');
 
     return view;
+  },
+
+  empty: function() {
+    throw "EWOT";
   },
 
   // It should be impossible for a rendered view to be scheduled for

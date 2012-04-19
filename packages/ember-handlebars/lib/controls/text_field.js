@@ -20,14 +20,7 @@ Ember.TextField = Ember.View.extend(Ember.TextSupport,
   classNames: ['ember-text-field'],
 
   tagName: "input",
-  attributeBindings: ['type', 'value'],
+  attributeBindings: ['type', 'value', 'size'],
   type: "text",
-
-  /**
-    @private
-  */
-  _updateElementValue: function() {
-    this.$().val(get(this, 'value'));
-  }
-
+  size: null
 });

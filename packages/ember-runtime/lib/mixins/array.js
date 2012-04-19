@@ -8,22 +8,24 @@
 require('ember-runtime/mixins/enumerable');
 
 
-  
+
 // ..........................................................
 // HELPERS
-// 
+//
 
-var get = Ember.get, set = Ember.set, meta = Ember.meta;
+var get = Ember.get, set = Ember.set, meta = Ember.meta, map = Ember.ArrayUtils.map;
 
+/** @private */
 function none(obj) { return obj===null || obj===undefined; }
 
+/** @private */
 function xform(target, method, params) {
   method.call(target, params[0], params[2], params[3], params[4]);
 }
 
 // ..........................................................
 // ARRAY
-// 
+//
 /**
   @namespace
 
@@ -60,7 +62,7 @@ Ember.Array = Ember.Mixin.create(Ember.Enumerable, /** @scope Ember.Array.protot
 
   /** @private - compatibility */
   isSCArray: true,
-  
+
   /**
     @field {Number} length
 
@@ -84,11 +86,22 @@ Ember.Array = Ember.Mixin.create(Ember.Enumerable, /** @scope Ember.Array.protot
     return get(this, idx);
   },
 
+  /**
+    This returns the objects at the specified indexes, using objectAt.
+
+    @param {Array} indexes
+      An array of indexes of items to return.
+   */
+  objectsAt: function(indexes) {
+    var self = this;
+    return map(indexes, function(idx){ return self.objectAt(idx); });
+  },
+
   /** @private (nodoc) - overrides Ember.Enumerable version */
   nextObject: function(idx) {
     return this.objectAt(idx);
   },
-  
+
   /**
     @field []
 
@@ -114,6 +127,11 @@ Ember.Array = Ember.Mixin.create(Ember.Enumerable, /** @scope Ember.Array.protot
     uses the observable array methods to retrieve the objects for the new
     slice.
 
+        var arr = ['red', 'green', 'blue'];
+        arr.slice(0);      => ['red', 'green', 'blue']
+        arr.slice(0, 2);   => ['red', 'green']
+        arr.slice(1, 100); => ['green', 'blue']
+
     @param beginIndex {Integer} (Optional) index to begin slicing from.
     @param endIndex {Integer} (Optional) index to end the slice at.
     @returns {Array} New array with specified slice
@@ -130,11 +148,22 @@ Ember.Array = Ember.Mixin.create(Ember.Enumerable, /** @scope Ember.Array.protot
   },
 
   /**
-    Returns the index for a particular object in the index.
+    Returns the index of the given object's first occurrence.
+    If no startAt argument is given, the starting location to
+    search is 0. If it's negative, will count backward from
+    the end of the array. Returns -1 if no match is found.
+
+        var arr = ["a", "b", "c", "d", "a"];
+        arr.indexOf("a");      =>  0
+        arr.indexOf("z");      => -1
+        arr.indexOf("a", 2);   =>  4
+        arr.indexOf("a", -1);  =>  4
+        arr.indexOf("b", 3);   => -1
+        arr.indexOf("a", 100); => -1
 
     @param {Object} object the item to search for
-    @param {NUmber} startAt optional starting location to search, default 0
-    @returns {Number} index of -1 if not found
+    @param {Number} startAt optional starting location to search, default 0
+    @returns {Number} index or -1 if not found
   */
   indexOf: function(object, startAt) {
     var idx, len = get(this, 'length');
@@ -149,16 +178,27 @@ Ember.Array = Ember.Mixin.create(Ember.Enumerable, /** @scope Ember.Array.protot
   },
 
   /**
-    Returns the last index for a particular object in the index.
+    Returns the index of the given object's last occurrence.
+    If no startAt argument is given, the search starts from
+    the last position. If it's negative, will count backward
+    from the end of the array. Returns -1 if no match is found.
+
+        var arr = ["a", "b", "c", "d", "a"];
+        arr.lastIndexOf("a");      =>  4
+        arr.lastIndexOf("z");      => -1
+        arr.lastIndexOf("a", 2);   =>  0
+        arr.lastIndexOf("a", -1);  =>  4
+        arr.lastIndexOf("b", 3);   =>  1
+        arr.lastIndexOf("a", 100); =>  4
 
     @param {Object} object the item to search for
-    @param {NUmber} startAt optional starting location to search, default 0
-    @returns {Number} index of -1 if not found
+    @param {Number} startAt optional starting location to search, default 0
+    @returns {Number} index or -1 if not found
   */
   lastIndexOf: function(object, startAt) {
     var idx, len = get(this, 'length');
 
-    if (startAt === undefined) startAt = len-1;
+    if (startAt === undefined || startAt >= len) startAt = len-1;
     if (startAt < 0) startAt += len;
 
     for(idx=startAt;idx>=0;idx--) {
@@ -166,36 +206,36 @@ Ember.Array = Ember.Mixin.create(Ember.Enumerable, /** @scope Ember.Array.protot
     }
     return -1;
   },
-  
+
   // ..........................................................
   // ARRAY OBSERVERS
-  // 
-  
+  //
+
   /**
     Adds an array observer to the receiving array.  The array observer object
     normally must implement two methods:
-    
+
     * `arrayWillChange(start, removeCount, addCount)` - This method will be
       called just before the array is modified.
     * `arrayDidChange(start, removeCount, addCount)` - This method will be
       called just after the array is modified.
-      
-    Both callbacks will be passed the starting index of the change as well a 
+
+    Both callbacks will be passed the starting index of the change as well a
     a count of the items to be removed and added.  You can use these callbacks
-    to optionally inspect the array during the change, clear caches, or do 
+    to optionally inspect the array during the change, clear caches, or do
     any other bookkeeping necessary.
-    
-    In addition to passing a target, you can also include an options hash 
+
+    In addition to passing a target, you can also include an options hash
     which you can use to override the method names that will be invoked on the
     target.
-    
+
     @param {Object} target
       The observer object.
-      
+
     @param {Hash} opts
       Optional hash of configuration options including willChange, didChange,
       and a context option.
-      
+
     @returns {Ember.Array} receiver
   */
   addArrayObserver: function(target, opts) {
@@ -209,15 +249,15 @@ Ember.Array = Ember.Mixin.create(Ember.Enumerable, /** @scope Ember.Array.protot
     if (!hasObservers) Ember.propertyDidChange(this, 'hasArrayObservers');
     return this;
   },
-  
+
   /**
-    Removes an array observer from the object if the observer is current 
+    Removes an array observer from the object if the observer is current
     registered.  Calling this method multiple times with the same object will
     have no effect.
-    
+
     @param {Object} target
       The object observing the array.
-    
+
     @returns {Ember.Array} receiver
   */
   removeArrayObserver: function(target, opts) {
@@ -231,32 +271,32 @@ Ember.Array = Ember.Mixin.create(Ember.Enumerable, /** @scope Ember.Array.protot
     if (hasObservers) Ember.propertyDidChange(this, 'hasArrayObservers');
     return this;
   },
-  
+
   /**
     Becomes true whenever the array currently has observers watching changes
     on the array.
-    
+
     @property {Boolean}
   */
   hasArrayObservers: Ember.computed(function() {
     return Ember.hasListeners(this, '@array:change') || Ember.hasListeners(this, '@array:before');
   }).property().cacheable(),
-  
+
   /**
-    If you are implementing an object that supports Ember.Array, call this 
+    If you are implementing an object that supports Ember.Array, call this
     method just before the array content changes to notify any observers and
     invalidate any related properties.  Pass the starting index of the change
     as well as a delta of the amounts to change.
-    
+
     @param {Number} startIdx
       The starting index in the array that will change.
-      
+
     @param {Number} removeAmt
       The number of items that will be removed.  If you pass null assumes 0
-    
+
     @param {Number} addAmt
       The number of items that will be added.  If you pass null assumes 0.
-      
+
     @returns {Ember.Array} receiver
   */
   arrayContentWillChange: function(startIdx, removeAmt, addAmt) {
@@ -280,14 +320,14 @@ Ember.Array = Ember.Mixin.create(Ember.Enumerable, /** @scope Ember.Array.protot
     } else {
       removing = removeAmt;
     }
-    
+
     this.enumerableContentWillChange(removing, addAmt);
 
     // Make sure the @each proxy is set up if anyone is observing @each
     if (Ember.isWatching(this, '@each')) { get(this, '@each'); }
     return this;
   },
-  
+
   arrayContentDidChange: function(startIdx, removeAmt, addAmt) {
 
     // if no args are passed assume everything changes
@@ -298,7 +338,7 @@ Ember.Array = Ember.Mixin.create(Ember.Enumerable, /** @scope Ember.Array.protot
       if (!removeAmt) removeAmt=0;
       if (!addAmt) addAmt=0;
     }
-    
+
     var adding, lim;
     if (startIdx>=0 && addAmt>=0 && get(this, 'hasEnumerableObservers')) {
       adding = [];
@@ -312,24 +352,24 @@ Ember.Array = Ember.Mixin.create(Ember.Enumerable, /** @scope Ember.Array.protot
     Ember.sendEvent(this, '@array:change', startIdx, removeAmt, addAmt);
     return this;
   },
-  
+
   // ..........................................................
   // ENUMERATED PROPERTIES
-  // 
-  
+  //
+
   /**
     Returns a special object that can be used to observe individual properties
     on the array.  Just get an equivalent property on this object and it will
-    return an enumerable that maps automatically to the named key on the 
+    return an enumerable that maps automatically to the named key on the
     member objects.
   */
   '@each': Ember.computed(function() {
     if (!this.__each) this.__each = new Ember.EachProxy(this);
     return this.__each;
   }).property().cacheable()
-  
-  
-  
+
+
+
 }) ;
 
 

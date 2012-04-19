@@ -30,20 +30,23 @@ var get = Ember.get, set = Ember.set;
   entire page, and are not embedding any third-party Ember applications
   in your page, use the default document root for your application.
 
-  You only need to specify the root if your page contains multiple instances 
+  You only need to specify the root if your page contains multiple instances
   of Ember.Application.
 
-  @since Ember 2.0
   @extends Ember.Object
 */
 Ember.Application = Ember.Namespace.extend(
 /** @scope Ember.Application.prototype */{
 
   /**
+    The root DOM element of the Application.
+
+    Can be specified as DOMElement or a selector string.
+
     @type DOMElement
-    @default document
+    @default 'body'
   */
-  rootElement: document,
+  rootElement: 'body',
 
   /**
     @type Ember.EventDispatcher
@@ -69,20 +72,32 @@ Ember.Application = Ember.Namespace.extend(
 
     set(this, 'eventDispatcher', eventDispatcher);
 
-    var self = this;
-    Ember.$(document).ready(function() {
-      self.ready();
-    });
-
-    this._super();
+    // jQuery 1.7 doesn't call the ready callback if already ready
+    if (Ember.$.isReady) {
+      this.didBecomeReady();
+    } else {
+      var self = this;
+      Ember.$(document).ready(function() {
+        self.didBecomeReady();
+      });
+    }
   },
 
-  ready: function() {
+  /** @private */
+  didBecomeReady: function() {
     var eventDispatcher = get(this, 'eventDispatcher'),
         customEvents    = get(this, 'customEvents');
 
     eventDispatcher.setup(customEvents);
+
+    this.ready();
   },
+
+  /**
+    Called when the Application has become ready.
+    The call will be delayed until the DOM has become ready.
+  */
+  ready: Ember.K,
 
   /** @private */
   destroy: function() {

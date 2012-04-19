@@ -5,9 +5,9 @@
 // License:   Licensed under MIT license (see license.js)
 // ==========================================================================
 
+/*globals jQuery*/
+
 require("ember-runtime");
-
-Ember.$ = jQuery;
-
+require("ember-views/core");
 require("ember-views/system");
 require("ember-views/views");

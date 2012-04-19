@@ -1,4 +1,4 @@
-# Ember.js
+# Ember.js [![Build Status](https://secure.travis-ci.org/emberjs/ember.js.png?branch=master)](http://travis-ci.org/emberjs/ember.js)
 
 Ember.js (formerly SproutCore 2.0) is a JavaScript framework that does all of the heavy lifting that you'd normally have to do by hand. There are tasks that are common to every web app; Ember.js does those things for you, so you can focus on building killer features and UI.
 
@@ -27,6 +27,7 @@ MyApp.country = Ember.Object.create({
   presidentNameBinding: 'MyApp.president.name'
 });
 
+// Later, after Ember has resolved bindings...
 MyApp.country.get('presidentName');
 // "Barack Obama"
 ```
@@ -92,8 +93,6 @@ For new users, we recommend downloading the [Ember.js Starter Kit](https://githu
 
 We also recommend that you check out the [annotated Todos example](http://annotated-todos.strobeapp.com/), which shows you the best practices for architecting an MVC-based web application. You can also [browse or fork the code on Github](https://github.com/emberjs/todos).
 
-[Guides are available](http://guides.sproutcore20.com/) for Ember.js. If you find an error, please [fork the guides on GitHub](https://github.com/sproutcore/sproutguides/tree/v2.0) and submit a pull request. (Note that Ember.js guides are on the `v2.0` branch.)
-
 # Building Ember.js
 
 NOTE: Due to the rename, these instructions may be in flux
@@ -108,15 +107,19 @@ therubyracer`.
 
 # How to Run Unit Tests
 
+## Setup
+
 1. Install Ruby 1.9.2+. There are many resources on the web can help; one of the best is [rvm](http://rvm.beginrescueend.com/).
 
 2. Install Bundler: `gem install bundler`
 
 3. Run `bundle` inside the project root to install the gem dependencies.
 
-4. To start the development server, run `bundle exec rackup`.
+## In Your Browser
 
-5. Then visit: `http://localhost:9292/tests/index.html?package=PACKAGE_NAME`.  Replace `PACKAGE_NAME` with the name of the package you want to run.  For example:
+1. To start the development server, run `rackup`.
+
+2. Then visit: `http://localhost:9292/tests/index.html?package=PACKAGE_NAME`.  Replace `PACKAGE_NAME` with the name of the package you want to run.  For example:
 
   * [Ember.js Runtime](http://localhost:9292/tests/index.html?package=ember-runtime)
   * [Ember.js Views](http://localhost:9292/tests/index.html?package=ember-views)
@@ -124,4 +127,37 @@ therubyracer`.
 
 To run multiple packages, you can separate them with commas. You can run all the tests using the `all` package:
 
-[http://localhost:9292/tests/index.html?package=all](http://localhost:9292/tests/index.html?package=all)
+<http://localhost:9292/tests/index.html?package=all>
+
+You can also pass `jquery=VERSION` in the test URL to test different versions of jQuery. Default is 1.7.2.
+
+## From the CLI
+
+1. Install phantomjs from http://phantomjs.org
+
+2. Run `rake test` to run a basic test suite or run `rake test[all]` to
+   run a more comprehensive suite.
+
+3. (Mac OS X Only) Run `rake autotest` to automatically re-run tests
+   when any files are changed.
+
+# Building API Docs
+
+The Ember.js API Docs provide a detailed collection of methods, classes, and viewable source code.
+
+NOTE: Requires node.js to generate.
+
+See <http://emberjs.com/> for annotated introductory documentation.
+
+## Preview API documenation
+
+* run `rake docs:preview`
+
+* The `docs:preview` task will build the documentation and make it available at <http://localhost:9292/index.html>
+
+
+## Build API documentation
+
+* run `rake docs:build`
+
+* HTML documentation is built in the `docs` directory

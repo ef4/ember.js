@@ -6,8 +6,6 @@
 
 var set = Ember.set, get = Ember.get, setPath = Ember.setPath;
 
-require('ember-views/views/view');
-
 module("Ember.View - Class Name Bindings");
 
 test("should apply bound class names to the element", function() {
@@ -79,13 +77,13 @@ test("classNames should not be duplicated on rerender", function(){
 
   view.createElement();
 
-  equals(view.$().attr('class'), 'ember-view high');
+  equal(view.$().attr('class'), 'ember-view high');
 
   Ember.run(function(){
     view.rerender();
   });
 
-  equals(view.$().attr('class'), 'ember-view high');
+  equal(view.$().attr('class'), 'ember-view high');
 });
 
 test("classNames removed by a classNameBindings observer should not re-appear on rerender", function(){
@@ -96,17 +94,17 @@ test("classNames removed by a classNameBindings observer should not re-appear on
 
   view.createElement();
 
-  equals(view.$().attr('class'), 'ember-view is-urgent');
+  equal(view.$().attr('class'), 'ember-view is-urgent');
 
   Ember.run(function(){
     view.set('isUrgent', false);
   });
 
-  equals(view.$().attr('class'), 'ember-view');
+  equal(view.$().attr('class'), 'ember-view');
 
   Ember.run(function(){
     view.rerender();
   });
 
-  equals(view.$().attr('class'), 'ember-view');
+  equal(view.$().attr('class'), 'ember-view');
 });

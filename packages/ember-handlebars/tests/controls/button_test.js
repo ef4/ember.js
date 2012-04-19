@@ -15,13 +15,21 @@ module("Ember.Button", {
   },
 
   teardown: function() {
-    button.destroy();
-    application.destroy();
+    Ember.run(function() {
+      button.destroy();
+      application.destroy();
+    });
   }
 });
 
 function synthesizeEvent(type, view) {
   view.$().trigger(type);
+}
+
+function synthesizeKeyEvent(type, keyCode, view) {
+  var event = Ember.$.Event(type);
+  event.keyCode = keyCode;
+  view.$().trigger(event);
 }
 
 function append() {
@@ -30,14 +38,14 @@ function append() {
   });
 }
 
-test("should become disabled if the disabled attribute is true", function() {
+test("should begin disabled if the disabled attribute is true", function() {
   button.set('disabled', true);
   append();
 
   ok(button.$().is(":disabled"));
 });
 
-test("should become disabled if the disabled attribute is true", function() {
+test("should become disabled if the disabled attribute is changed", function() {
   append();
   ok(button.$().is(":not(:disabled)"));
 
@@ -68,6 +76,95 @@ test("should trigger an action when clicked", function() {
   synthesizeEvent('mouseup', button);
 
   ok(wasClicked);
+});
+
+test("should trigger an action when touched", function() {
+  var wasClicked = false;
+
+  var actionObject = Ember.Object.create({
+    myAction: function() {
+      wasClicked = true;
+    }
+  });
+
+  button.set('target', actionObject);
+  button.set('action', 'myAction');
+
+  Ember.run(function() {
+    button.appendTo('#qunit-fixture');
+  });
+
+  synthesizeEvent('touchstart', button);
+  synthesizeEvent('touchend', button);
+
+  ok(wasClicked);
+});
+
+test("should trigger an action when space pressed", function() {
+  var wasClicked = false;
+
+  var actionObject = Ember.Object.create({
+    myAction: function() {
+      wasClicked = true;
+    }
+  });
+
+  button.set('target', actionObject);
+  button.set('action', 'myAction');
+
+  Ember.run(function() {
+    button.appendTo('#qunit-fixture');
+  });
+
+  synthesizeKeyEvent('keydown', 13, button);
+  synthesizeKeyEvent('keyup', 13, button);
+
+  ok(wasClicked);
+});
+
+test("should trigger an action when enter pressed", function() {
+  var wasClicked = false;
+
+  var actionObject = Ember.Object.create({
+    myAction: function() {
+      wasClicked = true;
+    }
+  });
+
+  button.set('target', actionObject);
+  button.set('action', 'myAction');
+
+  Ember.run(function() {
+    button.appendTo('#qunit-fixture');
+  });
+
+  synthesizeKeyEvent('keydown', 32, button);
+  synthesizeKeyEvent('keyup', 32, button);
+
+  ok(wasClicked);
+});
+
+test("should not trigger an action when another key is pressed", function() {
+  var wasClicked = false;
+
+  var actionObject = Ember.Object.create({
+    myAction: function() {
+      wasClicked = true;
+    }
+  });
+
+  button.set('target', actionObject);
+  button.set('action', 'myAction');
+
+  Ember.run(function() {
+    button.appendTo('#qunit-fixture');
+  });
+
+  // 'a' key
+  synthesizeKeyEvent('keydown', 65, button);
+  synthesizeKeyEvent('keyup', 65, button);
+
+  ok(!wasClicked);
 });
 
 test("should trigger an action on a String target when clicked", function() {
@@ -156,12 +253,53 @@ test("should not trigger action if disabled and a non-standard input", function(
   ok(!get(button, 'isActive'), "button does not become active when pushed");
 });
 
-test("should by default be of type='button'", function() {
+test("should not have a type if tagName is not 'input' or 'button'", function() {
   Ember.run(function() {
+    button.set('tagName', 'a');
     button.appendTo('#qunit-fixture');
   });
 
-  equals(button.$().attr('type'), 'button');
+  // IE 7 reports an empty string instead of null.
+  ok(!button.$().attr('type'));
+});
+
+test("should by default be of type='button' if tagName is 'input'", function() {
+  Ember.run(function() {
+    button.set('tagName', 'input');
+    button.appendTo('#qunit-fixture');
+  });
+
+  equal(button.$().attr('type'), 'button');
+});
+
+test("should by default be of type='button' if tagName is 'button'", function() {
+  Ember.run(function() {
+    button.set('tagName', 'button');
+    button.appendTo('#qunit-fixture');
+  });
+
+  equal(button.$().attr('type'), 'button');
+});
+
+test("should allow setting of type when tagName is not 'input' or 'button'", function() {
+  button.set('tagName', 'a');
+  button.set('type', 'submit');
+
+  equal(button.get('type'), 'submit');
+});
+
+test("should allow setting of type when tagName is 'input'", function() {
+  button.set('tagName', 'input');
+  button.set('type', 'submit');
+
+  equal(button.get('type'), 'submit');
+});
+
+test("should allow setting of type when tagName is 'button'", function() {
+  button.set('tagName', 'button');
+  button.set('type', 'submit');
+
+  equal(button.get('type'), 'submit');
 });
 
 test("should have a configurable type", function() {
@@ -170,12 +308,31 @@ test("should have a configurable type", function() {
   Ember.run(function() {
     button.appendTo('#qunit-fixture');
   });
-  
-  equals(button.$().attr('type'), 'submit');
+
+  equal(button.$().attr('type'), 'submit');
+});
+
+test("should set href='#' if tagName is 'a'", function() {
+  button.set('tagName', 'a');
+
+  Ember.run(function() {
+    button.appendTo('#qunit-fixture');
+  });
+
+  // IE 7 throws the whole url in there. If it ends with '#' we're ok
+  ok(/#$/.test(button.$().attr('href')));
+});
+
+test("should not set href if tagName is not 'a'", function() {
+  Ember.run(function() {
+    button.appendTo('#qunit-fixture');
+  });
+
+  equal(button.$().attr('href'), null);
 });
 
 test("should allow the target to be the parentView", function() {
   button.set('target', 'parentView');
-  
-  equals(get(button, 'parentView'), button.get('targetObject'));
+
+  equal(get(button, 'parentView'), button.get('targetObject'));
 });

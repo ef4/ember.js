@@ -7,27 +7,11 @@
 
 require('ember-metal');
 
+var indexOf = Ember.ArrayUtils.indexOf;
+
 // ........................................
 // GLOBAL CONSTANTS
 //
-
-/**
-  @name YES
-  @static
-  @type Boolean
-  @default true
-  @constant
-*/
-YES = true;
-
-/**
-  @name NO
-  @static
-  @type Boolean
-  @default NO
-  @constant
-*/
-NO = false;
 
 // ensure no undefined errors in browsers where console doesn't exist
 if (typeof console === 'undefined') {
@@ -35,26 +19,6 @@ if (typeof console === 'undefined') {
   console.log = console.info = console.warn = console.error = function() {};
 }
 
-// ..........................................................
-// BOOTSTRAP
-// 
-
-/**
-  @static
-  @type Boolean
-  @default YES
-  @constant
-  
-  Determines whether Ember should enhances some built-in object 
-  prototypes to provide a more friendly API.  If enabled, a few methods 
-  will be added to Function, String, and Array.  Object.prototype will not be
-  enhanced, which is the one that causes most troubles for people.
-  
-  In general we recommend leaving this option set to true since it rarely
-  conflicts with other code.  If you need to turn it off however, you can
-  define an ENV.EXTEND_PROTOTYPES config to disable it.
-*/  
-Ember.EXTEND_PROTOTYPES = (Ember.ENV.EXTEND_PROTOTYPES !== false);
 
 // ........................................
 // TYPING & ARRAY MESSAGING
@@ -62,7 +26,7 @@ Ember.EXTEND_PROTOTYPES = (Ember.ENV.EXTEND_PROTOTYPES !== false);
 
 var TYPE_MAP = {};
 var t ="Boolean Number String Function Array Date RegExp Object".split(" ");
-t.forEach(function(name) {
+Ember.ArrayUtils.forEach(t, function(name) {
 	TYPE_MAP[ "[object " + name + "]" ] = name.toLowerCase();
 });
 
@@ -75,26 +39,44 @@ var toString = Object.prototype.toString;
   It will return the same result across all browsers and includes a bit
   more detail.  Here is what will be returned:
 
-  | Return Value Constant | Meaning |
-  | 'string' | String primitive |
-  | 'number' | Number primitive |
-  | 'boolean' | Boolean primitive |
-  | 'null' | Null value |
-  | 'undefined' | Undefined value |
-  | 'function' | A function |
-  | 'array' | An instance of Array |
-  | 'class' | A Ember class (created using Ember.Object.extend()) |
-  | 'instance' | A Ember object instance |
-  | 'error' | An instance of the Error object |
-  | 'object' | A JavaScript object not inheriting from Ember.Object |
+      | Return Value  | Meaning                                              |
+      |---------------|------------------------------------------------------|
+      | 'string'      | String primitive                                     |
+      | 'number'      | Number primitive                                     |
+      | 'boolean'     | Boolean primitive                                    |
+      | 'null'        | Null value                                           |
+      | 'undefined'   | Undefined value                                      |
+      | 'function'    | A function                                           |
+      | 'array'       | An instance of Array                                 |
+      | 'class'       | A Ember class (created using Ember.Object.extend())  |
+      | 'instance'    | A Ember object instance                              |
+      | 'error'       | An instance of the Error object                      |
+      | 'object'      | A JavaScript object not inheriting from Ember.Object |
+
+  Examples:
+
+      Ember.typeOf();                      => 'undefined'
+      Ember.typeOf(null);                  => 'null'
+      Ember.typeOf(undefined);             => 'undefined'
+      Ember.typeOf('michael');             => 'string'
+      Ember.typeOf(101);                   => 'number'
+      Ember.typeOf(true);                  => 'boolean'
+      Ember.typeOf(Ember.makeArray);       => 'function'
+      Ember.typeOf([1,2,90]);              => 'array'
+      Ember.typeOf(Ember.Object.extend()); => 'class'
+      Ember.typeOf(Ember.Object.create()); => 'instance'
+      Ember.typeOf(new Error('teamocil')); => 'error'
+
+      // "normal" JavaScript object
+      Ember.typeOf({a: 'b'});              => 'object'
 
   @param item {Object} the item to check
   @returns {String} the type
 */
 Ember.typeOf = function(item) {
   var ret;
-  
-  ret = item==null ? String(item) : TYPE_MAP[toString.call(item)]||'object';
+
+  ret = (item === null || item === undefined) ? String(item) : TYPE_MAP[toString.call(item)] || 'object';
 
   if (ret === 'function') {
     if (Ember.Object && Ember.Object.detect(item)) ret = 'class';
@@ -103,14 +85,21 @@ Ember.typeOf = function(item) {
     else if (Ember.Object && item instanceof Ember.Object) ret = 'instance';
     else ret = 'object';
   }
-  
+
   return ret;
 };
 
 /**
-  Returns YES if the passed value is null or undefined.  This avoids errors
+  Returns true if the passed value is null or undefined.  This avoids errors
   from JSLint complaining about use of ==, which can be technically
   confusing.
+
+      Ember.none();             => true
+      Ember.none(null);         => true
+      Ember.none(undefined);    => true
+      Ember.none('');           => false
+      Ember.none([]);           => false
+      Ember.none(function(){}); => false
 
   @param {Object} obj Value to test
   @returns {Boolean}
@@ -122,16 +111,23 @@ Ember.none = function(obj) {
 /**
   Verifies that a value is null or an empty string | array | function.
 
+  Constrains the rules on `Ember.none` by returning false for empty
+  string and empty arrays.
+
+      Ember.empty();               => true
+      Ember.empty(null);           => true
+      Ember.empty(undefined);      => true
+      Ember.empty('');             => true
+      Ember.empty([]);             => true
+      Ember.empty('tobias fünke'); => false
+      Ember.empty([0,1,2]);        => false
+
   @param {Object} obj Value to test
   @returns {Boolean}
 */
 Ember.empty = function(obj) {
   return obj === null || obj === undefined || (obj.length === 0 && typeof obj !== 'function');
 };
-
-/**
-  Ember.isArray defined in ember-metal/lib/utils
-**/
 
 /**
  This will compare two javascript values of possibly different types.
@@ -144,11 +140,15 @@ Ember.empty = function(obj) {
  The order is calculated based on Ember.ORDER_DEFINITION, if types are different.
  In case they have the same type an appropriate comparison for this type is made.
 
+    Ember.compare('hello', 'hello');  => 0
+    Ember.compare('abc', 'dfg');      => -1
+    Ember.compare(2, 1);              => 1
+
  @param {Object} v First value to compare
  @param {Object} w Second value to compare
  @returns {Number} -1 if v < w, 0 if v = w and 1 if v > w.
 */
-Ember.compare = function (v, w) {
+Ember.compare = function compare(v, w) {
   if (v === w) { return 0; }
 
   var type1 = Ember.typeOf(v);
@@ -159,7 +159,7 @@ Ember.compare = function (v, w) {
     if (type1==='instance' && Comparable.detect(v.constructor)) {
       return v.constructor.compare(v, w);
     }
-    
+
     if (type2 === 'instance' && Comparable.detect(w.constructor)) {
       return 1-w.constructor.compare(w, v);
     }
@@ -206,9 +206,8 @@ Ember.compare = function (v, w) {
       var l = Math.min(vLen, wLen);
       var r = 0;
       var i = 0;
-      var thisFunc = arguments.callee;
       while (r === 0 && i < l) {
-        r = thisFunc(v[i],w[i]);
+        r = compare(v[i],w[i]);
         i++;
       }
       if (r !== 0) { return r; }
@@ -221,8 +220,8 @@ Ember.compare = function (v, w) {
       return 0;
 
     case 'instance':
-      if (Ember.Comparable && Ember.Comparable.detect(v)) { 
-        return v.compare(v, w); 
+      if (Ember.Comparable && Ember.Comparable.detect(v)) {
+        return v.compare(v, w);
       }
       return 0;
 
@@ -231,6 +230,7 @@ Ember.compare = function (v, w) {
   }
 };
 
+/** @private */
 function _copy(obj, deep, seen, copies) {
   var ret, loc, key;
 
@@ -238,8 +238,8 @@ function _copy(obj, deep, seen, copies) {
   if ('object' !== typeof obj || obj===null) return obj;
 
   // avoid cyclical loops
-  if (deep && (loc=seen.indexOf(obj))>=0) return copies[loc];
-  
+  if (deep && (loc=indexOf(seen, obj))>=0) return copies[loc];
+
   ember_assert('Cannot clone an Ember.Object that does not implement Ember.Copyable', !(obj instanceof Ember.Object) || (Ember.Copyable && Ember.Copyable.detect(obj)));
 
   // IMPORTANT: this specific test will detect a native array only.  Any other
@@ -259,7 +259,7 @@ function _copy(obj, deep, seen, copies) {
       ret[key] = deep ? _copy(obj[key], deep, seen, copies) : obj[key];
     }
   }
-  
+
   if (deep) {
     seen.push(obj);
     copies.push(ret);
@@ -308,11 +308,15 @@ Ember.inspect = function(obj) {
 };
 
 /**
-  Compares two objects, returning true if they are logically equal.  This is 
-  a deeper comparison than a simple triple equal.  For arrays and enumerables
-  it will compare the internal objects.  For any other object that implements
-  `isEqual()` it will respect that method.
-  
+  Compares two objects, returning true if they are logically equal.  This is
+  a deeper comparison than a simple triple equal. For sets it will compare the
+  internal objects.  For any other object that implements `isEqual()` it will 
+  respect that method.
+
+      Ember.isEqual('hello', 'hello');  => true
+      Ember.isEqual(1, 2);              => false
+      Ember.isEqual([4,2], [4,2]);      => false
+
   @param {Object} a first object to compare
   @param {Object} b second object to compare
   @returns {Boolean}
@@ -362,7 +366,7 @@ if (!Ember.keys) {
 
 // ..........................................................
 // ERROR
-// 
+//
 
 /**
   @class

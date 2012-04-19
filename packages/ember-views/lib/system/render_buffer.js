@@ -6,6 +6,27 @@
 // ==========================================================================
 
 var get = Ember.get, set = Ember.set;
+var forEach = Ember.ArrayUtils.forEach;
+var indexOf = Ember.ArrayUtils.indexOf;
+
+/** @private */
+var ClassSet = function() {
+  this.seen = {};
+  this.list = [];
+};
+
+ClassSet.prototype = {
+  add: function(string) {
+    if (string in this.seen) { return; }
+    this.seen[string] = true;
+
+    this.list.push(string);
+  },
+
+  toDOM: function() {
+    return this.list.join(" ");
+  }
+};
 
 /**
   @class
@@ -17,10 +38,15 @@ var get = Ember.get, set = Ember.set;
   @extends Ember.Object
 */
 Ember.RenderBuffer = function(tagName) {
-  return Ember._RenderBuffer.create({ elementTag: tagName });
+  return new Ember._RenderBuffer(tagName);
 };
 
-Ember._RenderBuffer = Ember.Object.extend(
+Ember._RenderBuffer = function(tagName) {
+  this.elementTag = tagName;
+  this.childBuffers = [];
+};
+
+Ember._RenderBuffer.prototype =
 /** @scope Ember.RenderBuffer.prototype */ {
 
   /**
@@ -94,17 +120,6 @@ Ember._RenderBuffer = Ember.Object.extend(
   */
   parentBuffer: null,
 
-  /** @private */
-  init: function() {
-    this._super();
-
-    set(this ,'elementClasses', Ember.A());
-    set(this, 'elementAttributes', {});
-    set(this, 'elementStyle', {});
-    set(this, 'childBuffers', Ember.A());
-    set(this, 'elements', {});
-  },
-
   /**
     Adds a string of HTML to the RenderBuffer.
 
@@ -112,7 +127,7 @@ Ember._RenderBuffer = Ember.Object.extend(
     @returns {Ember.RenderBuffer} this
   */
   push: function(string) {
-    get(this, 'childBuffers').pushObject(String(string));
+    this.childBuffers.push(String(string));
     return this;
   },
 
@@ -123,7 +138,10 @@ Ember._RenderBuffer = Ember.Object.extend(
     @returns {Ember.RenderBuffer} this
   */
   addClass: function(className) {
-    get(this, 'elementClasses').addObject(className);
+    // lazily create elementClasses
+    var elementClasses = this.elementClasses = (this.elementClasses || new ClassSet());
+    this.elementClasses.add(className);
+
     return this;
   },
 
@@ -134,19 +152,42 @@ Ember._RenderBuffer = Ember.Object.extend(
     @returns {Ember.RenderBuffer} this
   */
   id: function(id) {
-    set(this, 'elementId', id);
+    this.elementId = id;
     return this;
   },
+
+  // duck type attribute functionality like jQuery so a render buffer
+  // can be used like a jQuery object in attribute binding scenarios.
 
   /**
     Adds an attribute which will be rendered to the element.
 
     @param {String} name The name of the attribute
     @param {String} value The value to add to the attribute
-    @returns {Ember.RenderBuffer} this
+    @returns {Ember.RenderBuffer|String} this or the current attribute value
   */
   attr: function(name, value) {
-    get(this, 'elementAttributes')[name] = value;
+    var attributes = this.elementAttributes = (this.elementAttributes || {});
+
+    if (arguments.length === 1) {
+      return attributes[name];
+    } else {
+      attributes[name] = value;
+    }
+
+    return this;
+  },
+
+  /**
+    Remove an attribute from the list of attributes to render.
+
+    @param {String} name The name of the attribute
+    @returns {Ember.RenderBuffer} this
+  */
+  removeAttr: function(name) {
+    var attributes = this.elementAttributes;
+    if (attributes) { delete attributes[name]; }
+
     return this;
   },
 
@@ -158,7 +199,9 @@ Ember._RenderBuffer = Ember.Object.extend(
     @returns {Ember.RenderBuffer} this
   */
   style: function(name, value) {
-    get(this, 'elementStyle')[name] = value;
+    var style = this.elementStyle = (this.elementStyle || {});
+
+    this.elementStyle[name] = value;
     return this;
   },
 
@@ -179,10 +222,8 @@ Ember._RenderBuffer = Ember.Object.extend(
       buffer.
   */
   newBuffer: function(tagName, parent, fn, other) {
-    var buffer = Ember._RenderBuffer.create({
-      parentBuffer: parent,
-      elementTag: tagName
-    });
+    var buffer = new Ember._RenderBuffer(tagName);
+    buffer.parentBuffer = parent;
 
     if (other) { buffer.setProperties(other); }
     if (fn) { fn.call(this, buffer); }
@@ -200,12 +241,12 @@ Ember._RenderBuffer = Ember.Object.extend(
       the existing buffer.
   */
   replaceWithBuffer: function(newBuffer) {
-    var parent = get(this, 'parentBuffer');
+    var parent = this.parentBuffer;
     if (!parent) { return; }
 
-    var childBuffers = get(parent, 'childBuffers');
+    var childBuffers = parent.childBuffers;
 
-    var index = childBuffers.indexOf(this);
+    var index = indexOf(childBuffers, this);
 
     if (newBuffer) {
       childBuffers.splice(index, 1, newBuffer);
@@ -224,7 +265,7 @@ Ember._RenderBuffer = Ember.Object.extend(
   */
   begin: function(tagName) {
     return this.newBuffer(tagName, this, function(buffer) {
-      get(this, 'childBuffers').pushObject(buffer);
+      this.childBuffers.push(buffer);
     });
   },
 
@@ -235,7 +276,7 @@ Ember._RenderBuffer = Ember.Object.extend(
   */
   prepend: function(tagName) {
     return this.newBuffer(tagName, this, function(buffer) {
-      get(this, 'childBuffers').insertAt(0, buffer);
+      this.childBuffers.splice(0, 0, buffer);
     });
   },
 
@@ -245,7 +286,7 @@ Ember._RenderBuffer = Ember.Object.extend(
     @param {String} tagName Tag name to use for the new buffer's element
   */
   replaceWith: function(tagName) {
-    var parentBuffer = get(this, 'parentBuffer');
+    var parentBuffer = this.parentBuffer;
 
     return this.newBuffer(tagName, parentBuffer, function(buffer) {
       this.replaceWithBuffer(buffer);
@@ -261,9 +302,9 @@ Ember._RenderBuffer = Ember.Object.extend(
     var parentBuffer = get(this, 'parentBuffer');
 
     return this.newBuffer(tagName, parentBuffer, function(buffer) {
-      var siblings = get(parentBuffer, 'childBuffers');
-      var index = siblings.indexOf(this);
-      siblings.insertAt(index + 1, buffer);
+      var siblings = parentBuffer.childBuffers;
+      var index = indexOf(siblings, this);
+      siblings.splice(index + 1, 0, buffer);
     });
   },
 
@@ -273,7 +314,7 @@ Ember._RenderBuffer = Ember.Object.extend(
     @returns {Ember.RenderBuffer} The parentBuffer, if one exists. Otherwise, this
   */
   end: function() {
-    var parent = get(this, 'parentBuffer');
+    var parent = this.parentBuffer;
     return parent || this;
   },
 
@@ -295,42 +336,44 @@ Ember._RenderBuffer = Ember.Object.extend(
     @returns {String} The generated HTMl
   */
   string: function() {
-    var id = get(this, 'elementId'),
-        classes = get(this, 'elementClasses'),
-        attrs = get(this, 'elementAttributes'),
-        style = get(this, 'elementStyle'),
-        tag = get(this, 'elementTag'),
-        content = '',
-        styleBuffer = [], prop;
+    var content = '', tag = this.elementTag, openTag;
 
     if (tag) {
-      var openTag = ["<" + tag];
+      var id = this.elementId,
+          classes = this.elementClasses,
+          attrs = this.elementAttributes,
+          style = this.elementStyle,
+          styleBuffer = '', prop;
 
-      if (id) { openTag.push('id="' + id + '"'); }
-      if (classes.length) { openTag.push('class="' + classes.join(" ") + '"'); }
+      openTag = ["<" + tag];
 
-      if (!jQuery.isEmptyObject(style)) {
+      if (id) { openTag.push('id="' + this._escapeAttribute(id) + '"'); }
+      if (classes) { openTag.push('class="' + this._escapeAttribute(classes.toDOM()) + '"'); }
+
+      if (style) {
         for (prop in style) {
           if (style.hasOwnProperty(prop)) {
-            styleBuffer.push(prop + ':' + style[prop] + ';');
+            styleBuffer += (prop + ':' + this._escapeAttribute(style[prop]) + ';');
           }
         }
 
-        openTag.push('style="' + styleBuffer.join("") + '"');
+        openTag.push('style="' + styleBuffer + '"');
       }
 
-      for (prop in attrs) {
-        if (attrs.hasOwnProperty(prop)) {
-          openTag.push(prop + '="' + attrs[prop] + '"');
+      if (attrs) {
+        for (prop in attrs) {
+          if (attrs.hasOwnProperty(prop)) {
+            openTag.push(prop + '="' + this._escapeAttribute(attrs[prop]) + '"');
+          }
         }
       }
 
       openTag = openTag.join(" ") + '>';
     }
 
-    var childBuffers = get(this, 'childBuffers');
+    var childBuffers = this.childBuffers;
 
-    childBuffers.forEach(function(buffer) {
+    forEach(childBuffers, function(buffer) {
       var stringy = typeof buffer === 'string';
       content += (stringy ? buffer : buffer.string());
     });
@@ -340,6 +383,16 @@ Ember._RenderBuffer = Ember.Object.extend(
     } else {
       return content;
     }
+  },
+
+  _escapeAttribute: function(value) {
+    // Escaping only double quotes is probably sufficient, but it can't hurt to do a few more
+    return value.toString()
+                  .replace(/&/g, '&amp;')
+                  .replace(/</g, '&lt;')
+                  .replace(/>/g, '&gt;')
+                  .replace(/'/g, '&#x27;')
+                  .replace(/"/g, '&quot;');
   }
 
-});
+};

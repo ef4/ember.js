@@ -15,26 +15,24 @@ Ember.TextSupport = Ember.Mixin.create(
 
   value: "",
 
-  attributeBindings: ['placeholder', 'disabled'],
+  attributeBindings: ['placeholder', 'disabled', 'maxlength'],
   placeholder: null,
   disabled: false,
+  maxlength: null,
 
   insertNewline: Ember.K,
   cancel: Ember.K,
 
   focusOut: function(event) {
     this._elementValueDidChange();
-    return false;
   },
 
   change: function(event) {
     this._elementValueDidChange();
-    return false;
   },
 
   keyUp: function(event) {
     this.interpretKeyEvents(event);
-    return false;
   },
 
   /**
@@ -49,7 +47,7 @@ Ember.TextSupport = Ember.Mixin.create(
   },
 
   _elementValueDidChange: function() {
-    set(this, 'value', this.$().val() || '');
+    set(this, 'value', this.$().val());
   }
 
 });

@@ -32,9 +32,9 @@ test("default implementation does not render child views", function() {
   });
 
   view.createElement();
-  equals(rendered, 1, 'rendered the child once');
-  equals(parentRendered, 1);
-  equals(view.$('div').length, 1);
+  equal(rendered, 1, 'rendered the child once');
+  equal(parentRendered, 1);
+  equal(view.$('div').length, 1);
 
 });
 
@@ -61,17 +61,17 @@ test("should invoke renderChildViews if layer is destroyed then re-rendered", fu
     view.append();
   });
 
-  equals(rendered, 1, 'rendered the child once');
-  equals(parentRendered, 1);
-  equals(view.$('div').length, 1);
+  equal(rendered, 1, 'rendered the child once');
+  equal(parentRendered, 1);
+  equal(view.$('div').length, 1);
 
   Ember.run(function() {
     view.rerender();
   });
 
-  equals(rendered, 2, 'rendered the child twice');
-  equals(parentRendered, 2);
-  equals(view.$('div').length, 1);
+  equal(rendered, 2, 'rendered the child twice');
+  equal(parentRendered, 2);
+  equal(view.$('div').length, 1);
 
   view.destroy();
 });
@@ -88,52 +88,7 @@ test("should render child views with a different tagName", function() {
   });
 
   view.createElement();
-  equals(view.$('aside').length, 1);
-});
-
-test("should hide views when isVisible is false", function() {
-  var view = Ember.View.create({
-    isVisible: false
-  });
-
-  Ember.run(function() {
-    view.append();
-  });
-
-  ok(view.$().is(':hidden'), "the view is hidden");
-
-  set(view, 'isVisible', true);
-  ok(view.$().is(':visible'), "the view is visible");
-  view.remove();
-});
-
-test("should hide element if isVisible is false before element is created", function() {
-  var view = Ember.View.create({
-    isVisible: false
-  });
-
-  ok(!get(view, 'isVisible'), "precond - view is not visible");
-
-  set(view, 'template', function() { return "foo"; });
-
-  Ember.run(function() {
-    view.append();
-  });
-
-  ok(view.$().is(':hidden'), "should be hidden");
-
-  view.remove();
-  set(view, 'isVisible', true);
-
-  Ember.run(function() {
-    view.append();
-  });
-
-  ok(view.$().is(':visible'), "view should be visible");
-
-  Ember.run(function() {
-    view.remove();
-  });
+  equal(view.$('aside').length, 1);
 });
 
 test("should add ember-view to views", function() {
@@ -148,4 +103,29 @@ test("should not add role attribute unless one is specified", function() {
 
   view.createElement();
   ok(view.$().attr('role') === undefined, "does not have a role attribute");
+});
+
+test("should re-render if the templateContext is changed", function() {
+  var view = Ember.View.create({
+    elementId: 'template-context-test',
+    templateContext: { foo: "bar" },
+    render: function(buffer) {
+      var value = get(get(this, 'templateContext'), 'foo');
+      buffer.push(value);
+    }
+  });
+
+  Ember.run(function() {
+    view.appendTo('#qunit-fixture');
+  });
+
+  equal(Ember.$('#qunit-fixture #template-context-test').text(), "bar", "precond - renders the view with the initial value");
+
+  Ember.run(function() {
+    view.set('templateContext', {
+      foo: "bang baz"
+    });
+  });
+
+  equal(Ember.$('#qunit-fixture #template-context-test').text(), "bang baz", "re-renders the view with the updated templateContext");
 });

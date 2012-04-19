@@ -1,4 +1,8 @@
 var people, view;
+var template;
+var templateFor = function(template) {
+  return Ember.Handlebars.compile(template);
+};
 
 module("the #each helper", {
   setup: function() {
@@ -11,13 +15,14 @@ module("the #each helper", {
     });
 
     append(view);
+  },
+
+  teardown: function() {
+    view.destroy();
+    view = null;
   }
 });
 
-var template;
-var templateFor = function(template) {
-  return Ember.Handlebars.compile(template);
-};
 
 var append = function(view) {
   Ember.run(function() {
@@ -63,14 +68,10 @@ test("it updates the view if an item is removed", function() {
   });
 
   assertHTML(view, "Annabelle");
-  view.destroy();
 });
 
-
 test("it works inside a ul element", function() {
-  view.destroy();
-
-  var ulView = SC.View.create({
+  var ulView = Ember.View.create({
     template: templateFor('<ul>{{#each people}}<li>{{name}}</li>{{/each}}</ul>'),
     people: people
   });
@@ -79,7 +80,7 @@ test("it works inside a ul element", function() {
 
   equal(ulView.$('li').length, 2, "renders two <li> elements");
 
-  SC.run(function() {
+  Ember.run(function() {
     people.pushObject({name: "Black Francis"});
   });
 
@@ -87,9 +88,7 @@ test("it works inside a ul element", function() {
 });
 
 test("it works inside a table element", function() {
-  view.destroy();
-
-  var tableView = SC.View.create({
+  var tableView = Ember.View.create({
     template: templateFor('<table><tbody>{{#each people}}<tr><td>{{name}}</td></tr>{{/each}}</tbody></table>'),
     people: people
   });
@@ -98,16 +97,54 @@ test("it works inside a table element", function() {
 
   equal(tableView.$('td').length, 2, "renders two <td> elements");
 
-  SC.run(function() {
+  Ember.run(function() {
     people.pushObject({name: "Black Francis"});
   });
 
   equal(tableView.$('td').length, 3, "renders an additional <td> element when an object is added");
 
-  SC.run(function() {
+  Ember.run(function() {
     people.insertAt(0, {name: "Kim Deal"});
   });
 
   equal(tableView.$('td').length, 4, "renders an additional <td> when an object is inserted at the beginning of the array");
 });
 
+test("it supports {{else}}", function() {
+  view = Ember.View.create({
+    template: templateFor("{{#each items}}{{this}}{{else}}Nothing{{/each}}"),
+    items: Ember.A(['one', 'two'])
+  });
+
+  append(view);
+
+  assertHTML(view, "onetwo");
+
+  stop();
+
+  // We really need to make sure we get to the re-render
+  Ember.run.next(function() {
+    Ember.run(function() {
+      view.set('items', Ember.A([]));
+    });
+
+    start();
+
+    assertHTML(view, "Nothing");
+  });
+});
+
+test("it works with the controller keyword", function() {
+  var controller = Ember.ArrayController.create({
+    content: Ember.A(["foo", "bar", "baz"])
+  });
+
+  view = Ember.View.create({
+    controller: controller,
+    template: templateFor("{{#view}}{{#each controller}}{{this}}{{/each}}{{/view}}")
+  });
+
+  append(view);
+
+  equal(view.$().text(), "foobarbaz");
+});

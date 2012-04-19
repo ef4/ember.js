@@ -38,9 +38,11 @@ Ember.View.states.hasElement = {
   // once the view has been inserted into the DOM, rerendering is
   // deferred to allow bindings to synchronize.
   rerender: function(view) {
+    view._notifyWillRerender();
+
     view.clearRenderedChildren();
 
-    get(view, 'domManager').replace();
+    view.domManager.replace(view);
     return view;
   },
 
@@ -48,12 +50,31 @@ Ember.View.states.hasElement = {
   // from the DOM, nukes its element, and puts it back into the
   // preRender state.
   destroyElement: function(view) {
-    view.invokeRecursively(function(view) {
-      this.willDestroyElement();
-    });
+    view._notifyWillDestroyElement();
 
-    get(view, 'domManager').remove();
+    view.domManager.remove(view);
     return view;
+  },
+
+  empty: function(view) {
+    var _childViews = get(view, '_childViews'), len, idx;
+    if (_childViews) {
+      len = get(_childViews, 'length');
+      for (idx = 0; idx < len; idx++) {
+        _childViews[idx]._notifyWillDestroyElement();
+      }
+    }
+    view.domManager.empty(view);
+  },
+
+  // Handle events from `Ember.EventDispatcher`
+  handleEvent: function(view, eventName, evt) {
+    var handler = view[eventName];
+    if (Ember.typeOf(handler) === 'function') {
+      return handler.call(view, evt);
+    } else {
+      return true; // continue event propagation
+    }
   }
 };
 

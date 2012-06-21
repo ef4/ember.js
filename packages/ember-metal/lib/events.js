@@ -3,16 +3,16 @@
 // Copyright: ©2011 Strobe Inc. and contributors.
 // License:   Licensed under MIT license (see license.js)
 // ==========================================================================
-/*globals ember_assert */
 
 require('ember-metal/core');
 require('ember-metal/platform');
 require('ember-metal/utils');
 
-var o_create = Ember.platform.create;
-var meta = Ember.meta;
-var guidFor = Ember.guidFor;
-var a_slice = Array.prototype.slice;
+var o_create = Ember.create,
+    meta = Ember.meta,
+    metaPath = Ember.metaPath,
+    guidFor = Ember.guidFor,
+    a_slice = [].slice;
 
 /**
   The event system uses a series of nested hashes to store listeners on an
@@ -38,15 +38,11 @@ var a_slice = Array.prototype.slice;
 
 */
 
-/** @private */
-var metaPath = Ember.metaPath;
-
 // Gets the set of all actions, keyed on the guid of each action's
 // method property.
 /** @private */
 function actionSetFor(obj, eventName, target, writable) {
-  var targetGuid = guidFor(target);
-  return metaPath(obj, ['listeners', eventName, targetGuid], writable);
+  return metaPath(obj, ['listeners', eventName, guidFor(target)], writable);
 }
 
 // Gets the set of all targets, keyed on the guid of each action's
@@ -120,7 +116,7 @@ function invokeAction(action, params) {
   @memberOf Ember
 */
 function addListener(obj, eventName, target, method, xform) {
-  ember_assert("You must pass at least an object and event name to Ember.addListener", !!obj && !!eventName);
+  Ember.assert("You must pass at least an object and event name to Ember.addListener", !!obj && !!eventName);
 
   if (!method && 'function' === typeof target) {
     method = target;
@@ -128,7 +124,7 @@ function addListener(obj, eventName, target, method, xform) {
   }
 
   var actionSet = actionSetFor(obj, eventName, target, true),
-      methodGuid = guidFor(method), ret;
+      methodGuid = guidFor(method);
 
   if (!actionSet[methodGuid]) {
     actionSet[methodGuid] = { target: target, method: method, xform: xform };
@@ -139,13 +135,11 @@ function addListener(obj, eventName, target, method, xform) {
   if ('function' === typeof obj.didAddListener) {
     obj.didAddListener(eventName, target, method);
   }
-
-  return ret; // return true if this is the first listener.
 }
 
 /** @memberOf Ember */
 function removeListener(obj, eventName, target, method) {
-  if (!method && 'function'===typeof target) {
+  if (!method && 'function' === typeof target) {
     method = target;
     target = null;
   }
@@ -204,15 +198,12 @@ function watchedEvents(obj) {
 
 /** @memberOf Ember */
 function sendEvent(obj, eventName) {
-
   // first give object a chance to handle it
   if (obj !== Ember && 'function' === typeof obj.sendEvent) {
     obj.sendEvent.apply(obj, a_slice.call(arguments, 1));
   }
 
-  var targetSet = targetSetFor(obj, eventName);
-  iterateSet(targetSet, invokeAction, arguments);
-
+  iterateSet(targetSetFor(obj, eventName), invokeAction, arguments);
   return true;
 }
 
@@ -224,6 +215,8 @@ function deferEvent(obj, eventName) {
   });
 
   return function() {
+    if (obj.isDestroyed) { return; }
+
     if (obj !== Ember && 'function' === typeof obj.sendEvent) {
       obj.sendEvent.apply(obj, a_slice.call(params, 1));
     }
@@ -237,7 +230,7 @@ function deferEvent(obj, eventName) {
 /** @memberOf Ember */
 function hasListeners(obj, eventName) {
   var targetSet = targetSetFor(obj, eventName);
-  if (iterateSet(targetSet, function () {return true;})) {
+  if (iterateSet(targetSet, function() { return true; })) {
     return true;
   }
 

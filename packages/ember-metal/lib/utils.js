@@ -7,26 +7,13 @@
 require('ember-metal/core');
 require('ember-metal/platform');
 
-// ..........................................................
-// GUIDS
-//
-
-// Used for guid generation...
-var GUID_KEY = '__ember'+ (+ new Date());
-var uuid, numberCache, stringCache;
-
-uuid         = 0;
-numberCache  = [];
-stringCache  = {};
-
-var GUID_DESC = Ember.GUID_DESC = {
-  configurable: true,
-  writable: true,
-  enumerable: false
-};
-
-var o_defineProperty = Ember.platform.defineProperty;
-var o_create = Ember.platform.create;
+var o_defineProperty = Ember.platform.defineProperty,
+    o_create = Ember.create,
+    // Used for guid generation...
+    GUID_KEY = '__ember'+ (+ new Date()),
+    uuid         = 0,
+    numberCache  = [],
+    stringCache  = {};
 
 /**
   @private
@@ -67,9 +54,11 @@ Ember.generateGuid = function(obj, prefix) {
   if (!prefix) prefix = 'ember';
   var ret = (prefix + (uuid++));
   if (obj) {
-    GUID_DESC.value = ret;
-    o_defineProperty(obj, GUID_KEY, GUID_DESC);
-    GUID_DESC.value = null;
+    o_defineProperty(obj, GUID_KEY, {
+      configurable: true,
+      writable: true,
+      value: ret
+    });
   }
 
   return ret ;
@@ -138,7 +127,7 @@ var META_KEY = Ember.GUID_KEY+'_meta';
   The key used to store meta information on object for property observing.
 
   @static
-  @property
+  @type String
 */
 Ember.META_KEY = META_KEY;
 
@@ -346,8 +335,6 @@ Ember.isArray = function(obj) {
   @returns {Array}
 */
 Ember.makeArray = function(obj) {
-  if (obj === null || obj === undefined) return [];
+  if (obj === null || obj === undefined) { return []; }
   return Ember.isArray(obj) ? obj : [obj];
 };
-
-

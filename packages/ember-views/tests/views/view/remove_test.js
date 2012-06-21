@@ -5,7 +5,7 @@
 // ==========================================================================
 
 var set = Ember.set, get = Ember.get, getPath = Ember.getPath;
-var indexOf = Ember.ArrayUtils.indexOf;
+var indexOf = Ember.EnumerableUtils.indexOf;
 
 // .......................................................
 // removeChild()
@@ -68,7 +68,9 @@ test("removes view from parent view", function() {
   var child = getPath(parentView, 'childViews').objectAt(0);
   ok(get(child, 'parentView'), 'precond - has parentView');
 
-  parentView.createElement();
+  Ember.run(function(){
+    parentView.createElement();
+  });
 
   ok(parentView.$('div').length, "precond - has a child DOM element");
 
@@ -95,5 +97,27 @@ test("does nothing if not in parentView", function() {
 });
 
 
+test("the DOM element is gone after doing append and remove in two separate runloops", function() {
+  var view = Ember.View.create();
+  Ember.run(function() {
+    view.append();
+  });
+  Ember.run(function() {
+    view.remove();
+  });
 
+  var viewElem = Ember.$('#'+get(view, 'elementId'));
+  ok(viewElem.length === 0, "view's element doesn't exist in DOM");
+});
+
+test("the DOM element is gone after doing append and remove in a single runloop", function() {
+  var view = Ember.View.create();
+  Ember.run(function() {
+    view.append();
+    view.remove();
+  });
+
+  var viewElem = Ember.$('#'+get(view, 'elementId'));
+  ok(viewElem.length === 0, "view's element doesn't exist in DOM");
+});
 

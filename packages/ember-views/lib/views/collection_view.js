@@ -42,7 +42,7 @@ var get = Ember.get, set = Ember.set, fmt = Ember.String.fmt;
           classNames: ['a-collection'],
           content: ['A','B','C'],
           itemViewClass: Ember.View.extend({
-            template: Ember.Handlebars.compile("the letter: {{content}}")
+            template: Ember.Handlebars.compile("the letter: {{view.content}}")
           })
         })
 
@@ -56,8 +56,8 @@ var get = Ember.get, set = Ember.set, fmt = Ember.String.fmt;
           <div class="ember-view">the letter: C</div>
         </div>
 
-
   ## Automatic matching of parent/child tagNames
+
   Setting the `tagName` property of a `CollectionView` to any of 
   "ul", "ol", "table", "thead", "tbody", "tfoot", "tr", or "select" will result
   in the item views receiving an appropriately matched `tagName` property.
@@ -69,7 +69,7 @@ var get = Ember.get, set = Ember.set, fmt = Ember.String.fmt;
           tagName: 'ul',
           content: ['A','B','C'],
           itemViewClass: Ember.View.extend({
-            template: Ember.Handlebars.compile("the letter: {{content}}")
+            template: Ember.Handlebars.compile("the letter: {{view.content}}")
           })
         })
 
@@ -135,6 +135,15 @@ Ember.CollectionView = Ember.ContainerView.extend(
   content: null,
 
   /**
+    @private
+
+    This provides metadata about what kind of empty view class this
+    collection would like if it is being instantiated from another
+    system (like Handlebars)
+  */
+  emptyViewClass: Ember.View,
+
+  /**
     An optional view to display if content is set to an empty array.
 
     @type Ember.View
@@ -175,7 +184,7 @@ Ember.CollectionView = Ember.ContainerView.extend(
     var content = get(this, 'content');
 
     if (content) {
-      ember_assert(fmt("an Ember.CollectionView's content must implement Ember.Array. You passed %@", [content]), Ember.Array.detect(content));
+      Ember.assert(fmt("an Ember.CollectionView's content must implement Ember.Array. You passed %@", [content]), Ember.Array.detect(content));
       content.addArrayObserver(this);
     }
 
@@ -244,7 +253,7 @@ Ember.CollectionView = Ember.ContainerView.extend(
       itemViewClass = Ember.getPath(itemViewClass);
     }
 
-    ember_assert(fmt("itemViewClass must be a subclass of Ember.View, not %@", [itemViewClass]), Ember.View.detect(itemViewClass));
+    Ember.assert(fmt("itemViewClass must be a subclass of Ember.View, not %@", [itemViewClass]), Ember.View.detect(itemViewClass));
 
     len = content ? get(content, 'length') : 0;
     if (len) {
@@ -266,7 +275,6 @@ Ember.CollectionView = Ember.ContainerView.extend(
       addedViews.push(emptyView);
       set(this, 'emptyView', emptyView);
     }
-
     childViews.replace(start, 0, addedViews);
   },
 

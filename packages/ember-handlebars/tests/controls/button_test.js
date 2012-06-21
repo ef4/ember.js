@@ -1,24 +1,27 @@
 // ==========================================================================
-// Project:   Ember Handlebar Views
+// Project:   Ember Handlebars Views
 // Copyright: ©2011 Strobe Inc. and contributors.
 // License:   Licensed under MIT license (see license.js)
 // ==========================================================================
 
-var button, application;
+var button, dispatcher;
 
 var get = Ember.get, set = Ember.set;
 
 module("Ember.Button", {
   setup: function() {
-    application = Ember.Application.create();
+    Ember.TESTING_DEPRECATION = true;
+    dispatcher = Ember.EventDispatcher.create();
+    dispatcher.setup();
     button = Ember.Button.create();
   },
 
   teardown: function() {
     Ember.run(function() {
       button.destroy();
-      application.destroy();
+      dispatcher.destroy();
     });
+    Ember.TESTING_DEPRECATION = false;
   }
 });
 

@@ -1,18 +1,27 @@
-var map = Ember.ArrayUtils.map;
+var map = Ember.EnumerableUtils.map;
 
-var application, select;
+var dispatcher, select;
 
 module("Ember.Select", {
   setup: function() {
-    application = Ember.Application.create();
+    dispatcher = Ember.EventDispatcher.create();
+    dispatcher.setup();
     select = Ember.Select.create();
   },
 
   teardown: function() {
-    application.destroy();
-    select.destroy();
+    Ember.run(function() {
+      dispatcher.destroy();
+      select.destroy();
+    });
   }
 });
+
+function setAndFlush(view, key, value) {
+  Ember.run(function() {
+    Ember.set(view, key, value);
+  });
+}
 
 function append() {
   Ember.run(function() {
@@ -27,6 +36,10 @@ function selectedOptions() {
   }
   return rv;
 }
+
+test("has 'ember-view' and 'ember-select' CSS classes", function() {
+  deepEqual(select.get('classNames'), ['ember-view', 'ember-select']);
+});
 
 test("should render", function() {
   append();
@@ -203,7 +216,8 @@ test("a prompt can be specified", function() {
 
   equal(select.$('option').length, 3, "There should be three options");
   equal(select.$()[0].selectedIndex, 0, "By default, the prompt is selected in the DOM");
-  equal(select.$().val(), 'Pick a person', "By default, the prompt is selected in the DOM");
+  equal(select.$('option:selected').text(), 'Pick a person', "By default, the prompt is selected in the DOM");
+  equal(select.$().val(), '', "By default, the prompt has no value");
 
   equal(select.get('selection'), null, "When the prompt is selected, the selection should be null");
 
@@ -220,13 +234,84 @@ test("a prompt can be specified", function() {
   equal(select.get('selection'), tom, "Properly accounts for the prompt when DOM change occurs");
 });
 
+test("handles null content", function() {
+  append();
+
+  Ember.run(function() {
+    select.set('content', null);
+    select.set('selection', 'invalid');
+  });
+
+  equal(select.get('element').selectedIndex, -1, "should have no selection");
+
+  Ember.run(function() {
+    select.set('multiple', true);
+    select.set('selection', [{ content: 'invalid' }]);
+  });
+
+  equal(select.get('element').selectedIndex, -1, "should have no selection");
+});
+
+
+test("should be able to select an option and then reselect the prompt", function() {
+  select.set('content', Ember.A(['one', 'two', 'three']));
+  select.set('prompt', 'Select something');
+
+  append();
+
+  select.$()[0].selectedIndex = 2;
+  select.$().trigger('change');
+  equal(select.get('selection'), 'two');
+
+  select.$()[0].selectedIndex = 0;
+  select.$().trigger('change');
+  equal(select.get('selection'), null);
+  equal(select.$()[0].selectedIndex, 0);
+});
+
+test("should be able to get the current selection's value", function() {
+  select.set('content', Ember.A([
+    {label: 'Yehuda Katz', value: 'wycats'},
+    {label: 'Tom Dale', value: 'tomdale'},
+    {label: 'Peter Wagenet', value: 'wagenet'},
+    {label: 'Erik Bryn', value: 'ebryn'}
+  ]));
+  select.set('optionLabelPath', 'content.label');
+  select.set('optionValuePath', 'content.value');
+
+  append();
+
+  equal(select.get('value'), 'wycats');
+});
+
+test("should be able to set the current selection by value", function() {
+  var ebryn = {label: 'Erik Bryn', value: 'ebryn'};
+  select.set('content', Ember.A([
+    {label: 'Yehuda Katz', value: 'wycats'},
+    {label: 'Tom Dale', value: 'tomdale'},
+    {label: 'Peter Wagenet', value: 'wagenet'},
+    ebryn
+  ]));
+  select.set('optionLabelPath', 'content.label');
+  select.set('optionValuePath', 'content.value');
+  select.set('value', 'ebryn');
+
+  append();
+
+  equal(select.get('value'), 'ebryn');
+  equal(select.get('selection'), ebryn);
+});
+
 module("Ember.Select - usage inside templates", {
   setup: function() {
-    application = Ember.Application.create();
+    dispatcher = Ember.EventDispatcher.create();
+    dispatcher.setup();
   },
 
   teardown: function() {
-    application.destroy();
+    Ember.run(function() {
+      dispatcher.destroy();
+    });
   }
 });
 
@@ -242,6 +327,9 @@ test("works from a template with bindings", function() {
   });
 
   var erik = Person.create({id: 4, firstName: 'Erik', lastName: 'Bryn'});
+
+  var application = Ember.Namespace.create();
+
   application.peopleController = Ember.ArrayController.create({
     content: Ember.A([
       Person.create({id: 1, firstName: 'Yehuda', lastName: 'Katz'}),
@@ -276,13 +364,16 @@ test("works from a template with bindings", function() {
   equal(select.$('option').length, 5, "Options were rendered");
   equal(select.$().text(), "Pick a person:Yehuda KatzTom DalePeter WagenetErik Bryn", "Option values were rendered");
   equal(select.get('selection'), null, "Nothing has been selected");
-
-  application.selectedPersonController.set('person', erik);
-  Ember.run.sync();
+  
+  Ember.run(function(){
+    application.selectedPersonController.set('person', erik);
+  });
+  
   equal(select.get('selection'), erik, "Selection was updated through binding");
-
-  application.peopleController.pushObject(Person.create({id: 5, firstName: "James", lastName: "Rosen"}));
-  Ember.run.end();
+  Ember.run(function(){
+    application.peopleController.pushObject(Person.create({id: 5, firstName: "James", lastName: "Rosen"}));
+  });
+  
   equal(select.$('option').length, 6, "New option was added");
   equal(select.get('selection'), erik, "Selection was maintained after new option was added");
 });
@@ -317,4 +408,3 @@ test("upon content change, the DOM should reflect the selection (#481)", functio
   equal(select.get('selection'), 'd', "Selection was properly set after content change");
   equal(selectEl.selectedIndex, 1, "The DOM reflects the correct selection");
 });
-

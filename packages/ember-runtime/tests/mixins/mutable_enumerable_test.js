@@ -6,7 +6,7 @@
 
 require('ember-runtime/~tests/suites/mutable_enumerable');
 
-var indexOf = Ember.ArrayUtils.indexOf;
+var indexOf = Ember.EnumerableUtils.indexOf;
 
 /*
   Implement a basic fake mutable array.  This validates that any non-native
@@ -43,7 +43,7 @@ var TestMutableEnumerable = Ember.Object.extend(Ember.MutableEnumerable, {
 
   length: Ember.computed(function() {
     return this._content.length;
-  }).property('[]').cacheable(),
+  }).property().cacheable(),
 
   slice: function() {
     return this._content.slice();

@@ -3,31 +3,22 @@
 // Copyright: ©2011 Strobe Inc. and contributors.
 // License:   Licensed under MIT license (see license.js)
 // ==========================================================================
-/*globals ember_assert */
 
 require('ember-metal/core');
 require('ember-metal/platform');
 require('ember-metal/utils');
 require('ember-metal/accessors');
 
-var USE_ACCESSORS = Ember.USE_ACCESSORS;
-var GUID_KEY = Ember.GUID_KEY;
-var META_KEY = Ember.META_KEY;
-var meta = Ember.meta;
-var o_create = Ember.platform.create;
-var o_defineProperty = Ember.platform.defineProperty;
-var SIMPLE_PROPERTY, WATCHED_PROPERTY;
+var USE_ACCESSORS = Ember.USE_ACCESSORS,
+    GUID_KEY = Ember.GUID_KEY,
+    META_KEY = Ember.META_KEY,
+    meta = Ember.meta,
+    objectDefineProperty = Ember.platform.defineProperty,
+    SIMPLE_PROPERTY, WATCHED_PROPERTY;
 
 // ..........................................................
 // DESCRIPTOR
 //
-
-var SIMPLE_DESC = {
-  writable: true,
-  configurable: true,
-  enumerable: true,
-  value: null
-};
 
 /**
   @private
@@ -38,15 +29,18 @@ var SIMPLE_DESC = {
 
   You generally won't need to create or subclass this directly.
 */
-var Dc = Ember.Descriptor = function() {};
+var Descriptor = Ember.Descriptor = function() {};
 
-var setup = Dc.setup = function(obj, keyName, value) {
-  SIMPLE_DESC.value = value;
-  o_defineProperty(obj, keyName, SIMPLE_DESC);
-  SIMPLE_DESC.value = null;
+var setup = Descriptor.setup = function(obj, keyName, value) {
+  objectDefineProperty(obj, keyName, {
+    writable: true,
+    configurable: true,
+    enumerable: true,
+    value: value
+  });
 };
 
-var Dp = Ember.Descriptor.prototype;
+var DescriptorPrototype = Ember.Descriptor.prototype;
 
 /**
   Called whenever we want to set the property value.  Should set the value
@@ -64,7 +58,7 @@ var Dp = Ember.Descriptor.prototype;
 
   @returns {Object} value actual set value
 */
-Dp.set = function(obj, keyName, value) {
+DescriptorPrototype.set = function(obj, keyName, value) {
   obj[keyName] = value;
   return value;
 };
@@ -81,8 +75,8 @@ Dp.set = function(obj, keyName, value) {
 
   @returns {Object} the current value
 */
-Dp.get = function(obj, keyName) {
-  return w_get(obj, keyName, obj);
+DescriptorPrototype.get = function(obj, keyName) {
+  return get(obj, keyName, obj);
 };
 
 /**
@@ -104,7 +98,7 @@ Dp.get = function(obj, keyName) {
 
   @returns {void}
 */
-Dp.setup = setup;
+DescriptorPrototype.setup = setup;
 
 /**
   This is called on the descriptor just before another descriptor takes its
@@ -123,11 +117,11 @@ Dp.setup = setup;
 
   @returns {Object} transfer value
 */
-Dp.teardown = function(obj, keyName) {
+DescriptorPrototype.teardown = function(obj, keyName) {
   return obj[keyName];
 };
 
-Dp.val = function(obj, keyName) {
+DescriptorPrototype.val = function(obj, keyName) {
   return obj[keyName];
 };
 
@@ -135,85 +129,89 @@ Dp.val = function(obj, keyName) {
 // SIMPLE AND WATCHED PROPERTIES
 //
 
-// if accessors are disabled for the app then this will act as a guard when
-// testing on browsers that do support accessors.  It will throw an exception
-// if you do foo.bar instead of Ember.get(foo, 'bar')
-
 // The exception to this is that any objects managed by Ember but not a descendant
 // of Ember.Object will not throw an exception, instead failing silently. This
 // prevent errors with other libraries that may attempt to access special
 // properties on standard objects like Array. Usually this happens when copying
 // an object by looping over all properties.
-
-if (!USE_ACCESSORS) {
-  Ember.Descriptor.MUST_USE_GETTER = function() {
-    if (this instanceof Ember.Object) {
-      ember_assert('Must use Ember.get() to access this property', false);
+//
+// QUESTION: What is this scenario exactly?
+var mandatorySetter = Ember.Descriptor.MUST_USE_SETTER = function() {
+  if (this instanceof Ember.Object) {
+    if (this.isDestroyed) {
+      Ember.assert('You cannot set observed properties on destroyed objects', false);
+    } else {
+      Ember.assert('Must use Ember.set() to access this property', false);
     }
-  };
-
-  Ember.Descriptor.MUST_USE_SETTER = function() {
-    if (this instanceof Ember.Object) {
-      if (this.isDestroyed) {
-        ember_assert('You cannot set observed properties on destroyed objects', false);
-      } else {
-        ember_assert('Must use Ember.set() to access this property', false);
-      }
-    }
-  };
-}
+  }
+};
 
 var WATCHED_DESC = {
   configurable: true,
   enumerable:   true,
-  set: Ember.Descriptor.MUST_USE_SETTER
+  set: mandatorySetter
 };
 
 /** @private */
-function w_get(obj, keyName, values) {
-  values = values || meta(obj, false).values;
-
-  if (values) {
-    var ret = values[keyName];
-    if (ret !== undefined) { return ret; }
-    if (obj.unknownProperty) { return obj.unknownProperty(keyName); }
+function rawGet(obj, keyName, values) {
+  var ret = values[keyName];
+  if (ret === undefined && obj.unknownProperty) {
+    ret = obj.unknownProperty(keyName);
   }
+  return ret;
+}
 
+function get(obj, keyName) {
+  return rawGet(obj, keyName, obj);
+}
+
+var emptyObject = {};
+
+function watchedGet(obj, keyName) {
+  return rawGet(obj, keyName, meta(obj, false).values || emptyObject);
+}
+
+var hasGetters = Ember.platform.hasPropertyAccessors, rawSet;
+
+rawSet = function(obj, keyName, value, values) {
+  values[keyName] = value;
+};
+
+// if there are no getters, keep the raw property up to date
+if (!hasGetters) {
+  rawSet = function(obj, keyName, value, values) {
+    obj[keyName] = value;
+    values[keyName] = value;
+  };
 }
 
 /** @private */
-function w_set(obj, keyName, value) {
-  var m = meta(obj), watching;
+function watchedSet(obj, keyName, value) {
+  var m = meta(obj),
+      values = m.values,
+      changed = value !== values[keyName];
 
-  watching = m.watching[keyName]>0 && value!==m.values[keyName];
-  if (watching) Ember.propertyWillChange(obj, keyName);
-  m.values[keyName] = value;
-  if (watching) Ember.propertyDidChange(obj, keyName);
+  if (changed) {
+    Ember.propertyWillChange(obj, keyName);
+    rawSet(obj, keyName, value, m.values);
+    Ember.propertyDidChange(obj, keyName);
+  }
+
   return value;
 }
 
-var WATCHED_GETTERS = {};
 /** @private */
-function mkWatchedGetter(keyName) {
-  var ret = WATCHED_GETTERS[keyName];
-  if (!ret) {
-    ret = WATCHED_GETTERS[keyName] = function() {
-      return w_get(this, keyName);
-    };
-  }
-  return ret;
+function makeWatchedGetter(keyName) {
+  return function() {
+    return watchedGet(this, keyName);
+  };
 }
 
-var WATCHED_SETTERS = {};
 /** @private */
-function mkWatchedSetter(keyName) {
-  var ret = WATCHED_SETTERS[keyName];
-  if (!ret) {
-    ret = WATCHED_SETTERS[keyName] = function(value) {
-      return w_set(this, keyName, value);
-    };
-  }
-  return ret;
+function makeWatchedSetter(keyName) {
+  return function(value) {
+    return watchedSet(this, keyName, value);
+  };
 }
 
 /**
@@ -222,50 +220,25 @@ function mkWatchedSetter(keyName) {
   Private version of simple property that invokes property change callbacks.
 */
 WATCHED_PROPERTY = new Ember.Descriptor();
+WATCHED_PROPERTY.get = watchedGet ;
+WATCHED_PROPERTY.set = watchedSet ;
 
-if (Ember.platform.hasPropertyAccessors) {
-  WATCHED_PROPERTY.get = w_get ;
-  WATCHED_PROPERTY.set = w_set ;
+WATCHED_PROPERTY.setup = function(obj, keyName, value) {
+  objectDefineProperty(obj, keyName, {
+    configurable: true,
+    enumerable:   true,
+    set: mandatorySetter,
+    get: makeWatchedGetter(keyName)
+  });
 
-  if (USE_ACCESSORS) {
-    WATCHED_PROPERTY.setup = function(obj, keyName, value) {
-      WATCHED_DESC.get = mkWatchedGetter(keyName);
-      WATCHED_DESC.set = mkWatchedSetter(keyName);
-      o_defineProperty(obj, keyName, WATCHED_DESC);
-      WATCHED_DESC.get = WATCHED_DESC.set = null;
-      if (value !== undefined) meta(obj).values[keyName] = value;
-    };
+  meta(obj).values[keyName] = value;
+};
 
-  } else {
-    WATCHED_PROPERTY.setup = function(obj, keyName, value) {
-      WATCHED_DESC.get = mkWatchedGetter(keyName);
-      o_defineProperty(obj, keyName, WATCHED_DESC);
-      WATCHED_DESC.get = null;
-      if (value !== undefined) meta(obj).values[keyName] = value;
-    };
-  }
-
-  WATCHED_PROPERTY.teardown = function(obj, keyName) {
-    var ret = meta(obj).values[keyName];
-    delete meta(obj).values[keyName];
-    return ret;
-  };
-
-// NOTE: if platform does not have property accessors then we just have to
-// set values and hope for the best.  You just won't get any warnings...
-} else {
-
-  WATCHED_PROPERTY.set = function(obj, keyName, value) {
-    var m = meta(obj), watching;
-
-    watching = m.watching[keyName]>0 && value!==obj[keyName];
-    if (watching) Ember.propertyWillChange(obj, keyName);
-    obj[keyName] = value;
-    if (watching) Ember.propertyDidChange(obj, keyName);
-    return value;
-  };
-
-}
+WATCHED_PROPERTY.teardown = function(obj, keyName) {
+  var ret = meta(obj).values[keyName];
+  delete meta(obj).values[keyName];
+  return ret;
+};
 
 /**
   The default descriptor for simple properties.  Pass as the third argument
@@ -279,7 +252,6 @@ SIMPLE_PROPERTY = Ember.SIMPLE_PROPERTY;
 
 SIMPLE_PROPERTY.unwatched = WATCHED_PROPERTY.unwatched = SIMPLE_PROPERTY;
 SIMPLE_PROPERTY.watched   = WATCHED_PROPERTY.watched   = WATCHED_PROPERTY;
-
 
 // ..........................................................
 // DEFINING PROPERTIES API
@@ -326,16 +298,27 @@ function hasDesc(descs, keyName) {
       }).property('firstName', 'lastName').cacheable());
 */
 Ember.defineProperty = function(obj, keyName, desc, val) {
-  var m = meta(obj, false), descs = m.descs, watching = m.watching[keyName]>0, override = true;
+  var m = meta(obj, false),
+      descs = m.descs,
+      watching = m.watching[keyName]>0,
+      override = true;
 
   if (val === undefined) {
+    // if a value wasn't provided, the value is the old value
+    // (which can be obtained by calling teardown on a property
+    // with a descriptor).
     override = false;
     val = hasDesc(descs, keyName) ? descs[keyName].teardown(obj, keyName) : obj[keyName];
   } else if (hasDesc(descs, keyName)) {
+    // otherwise, tear down the descriptor, but use the provided
+    // value as the new value instead of the descriptor's current
+    // value.
     descs[keyName].teardown(obj, keyName);
   }
 
-  if (!desc) desc = SIMPLE_PROPERTY;
+  if (!desc) {
+    desc = SIMPLE_PROPERTY;
+  }
 
   if (desc instanceof Ember.Descriptor) {
     m = meta(obj, true);
@@ -348,7 +331,7 @@ Ember.defineProperty = function(obj, keyName, desc, val) {
   // compatibility with ES5
   } else {
     if (descs[keyName]) meta(obj).descs[keyName] = null;
-    o_defineProperty(obj, keyName, desc);
+    objectDefineProperty(obj, keyName, desc);
   }
 
   // if key is being watched, override chains that
@@ -358,56 +341,3 @@ Ember.defineProperty = function(obj, keyName, desc, val) {
   return this;
 };
 
-/**
-  Creates a new object using the passed object as its prototype.  On browsers
-  that support it, this uses the built in Object.create method.  Else one is
-  simulated for you.
-
-  This method is a better choice than Object.create() because it will make
-  sure that any observers, event listeners, and computed properties are
-  inherited from the parent as well.
-
-  @param {Object} obj
-    The object you want to have as the prototype.
-
-  @returns {Object} the newly created object
-*/
-Ember.create = function(obj, props) {
-  var ret = o_create(obj, props);
-  if (GUID_KEY in ret) Ember.generateGuid(ret, 'ember');
-  if (META_KEY in ret) Ember.rewatch(ret); // setup watch chains if needed.
-  return ret;
-};
-
-/**
-  @private
-
-  Creates a new object using the passed object as its prototype.  This method
-  acts like `Ember.create()` in every way except that bindings, observers, and
-  computed properties will be activated on the object.
-
-  The purpose of this method is to build an object for use in a prototype
-  chain. (i.e. to be set as the `prototype` property on a constructor
-  function).  Prototype objects need to inherit bindings, observers and
-  other configuration so they pass it on to their children.  However since
-  they are never 'live' objects themselves, they should not fire or make
-  other changes when various properties around them change.
-
-  You should use this method anytime you want to create a new object for use
-  in a prototype chain.
-
-  @param {Object} obj
-    The base object.
-
-  @param {Object} hash
-    Optional hash of properties to define on the object.
-
-  @returns {Object} new object
-*/
-Ember.createPrototype = function(obj, props) {
-  var ret = o_create(obj, props);
-  meta(ret, true).proto = ret;
-  if (GUID_KEY in ret) Ember.generateGuid(ret, 'ember');
-  if (META_KEY in ret) Ember.rewatch(ret); // setup watch chains if needed.
-  return ret;
-};

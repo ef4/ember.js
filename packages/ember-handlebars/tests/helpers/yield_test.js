@@ -1,5 +1,5 @@
 // ==========================================================================
-// Project:   Ember Handlebar Views
+// Project:   Ember Handlebars Views
 // Copyright: ©2011 Strobe Inc. and contributors.
 // License:   Licensed under MIT license (see license.js)
 // ==========================================================================
@@ -14,9 +14,12 @@ module("Support for {{yield}} helper (#307)", {
     window.TemplateTests = Ember.Namespace.create();
   },
   teardown: function() {
-    if (view) {
-      view.destroy();
-    }
+    Ember.run(function(){
+      if (view) {
+        view.destroy();
+      }}
+    );
+
 
     window.TemplateTests = undefined;
   }
@@ -64,7 +67,7 @@ test("block should work properly even when templates are not hard-coded", functi
 
 test("templates should yield to block, when the yield is embedded in a hierarchy of virtual views", function() {
   TemplateTests.TimesView = Ember.View.extend({
-    layout: Ember.Handlebars.compile('<div class="times">{{#each index}}{{yield}}{{/each}}</div>'),
+    layout: Ember.Handlebars.compile('<div class="times">{{#each view.index}}{{yield}}{{/each}}</div>'),
     n: null,
     index: Ember.computed(function() {
       var n = Ember.get(this, 'n'), indexArray = Ember.A([]);

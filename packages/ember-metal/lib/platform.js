@@ -14,36 +14,35 @@ require('ember-metal/core');
 
   @name Ember.platform
 */
-var platform = Ember.platform = {} ;
+var platform = Ember.platform = {};
 
 /**
   Identical to Object.create().  Implements if not available natively.
   @memberOf Ember.platform
   @name create
 */
-platform.create = Object.create;
+Ember.create = Object.create;
 
-if (!platform.create) {
+if (!Ember.create) {
   /** @private */
-  var O_ctor = function() {},
-      O_proto = O_ctor.prototype;
+  var K = function() {};
 
-  platform.create = function(obj, descs) {
-    O_ctor.prototype = obj;
-    obj = new O_ctor();
-    O_ctor.prototype = O_proto;
-
-    if (descs !== undefined) {
-      for(var key in descs) {
-        if (!descs.hasOwnProperty(key)) continue;
-        platform.defineProperty(obj, key, descs[key]);
+  Ember.create = function(obj, props) {
+    K.prototype = obj;
+    obj = new K();
+    if (props) {
+      K.prototype = obj;
+      for (var prop in props) {
+        K.prototype[prop] = props[prop].value;
       }
+      obj = new K();
     }
+    K.prototype = null;
 
     return obj;
   };
 
-  platform.create.isSimulated = true;
+  Ember.create.isSimulated = true;
 }
 
 /** @private */
@@ -145,8 +144,7 @@ if (!platform.defineProperty) {
   platform.hasPropertyAccessors = false;
 
   platform.defineProperty = function(obj, keyName, desc) {
-    ember_assert("property descriptor cannot have `get` or `set` on this platform", !desc.get && !desc.set);
-    obj[keyName] = desc.value;
+    if (!desc.get) { obj[keyName] = desc.value; }
   };
 
   platform.defineProperty.isSimulated = true;

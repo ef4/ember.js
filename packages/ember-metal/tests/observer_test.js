@@ -492,7 +492,7 @@ testBoth('addBeforeObserver should respect targets with methods', function(get,s
 
 var obj, count;
 
-module('Ember.computed - dependentkey with chained properties', {
+module('Ember.addObserver - dependentkey with chained properties', {
   setup: function() {
     obj = {
       foo: {
@@ -560,35 +560,6 @@ testBoth('depending on a simple chain', function(get, set) {
   equal(count, 6, 'should be not have invoked observer');
 });
 
-testBoth('depending on complex chain', function(get, set) {
-
-  var val ;
-  Ember.addObserver(obj, 'foo.bar*baz.biff', function(target, key, value) {
-    val = value;
-    count++;
-  });
-
-  set(Ember.getPath(obj, 'foo.bar.baz'), 'biff', 'BUZZ');
-  equal(val, 'BUZZ');
-  equal(count, 1);
-
-  set(Ember.getPath(obj, 'foo.bar'), 'baz', { biff: 'BLARG' });
-  equal(val, 'BLARG');
-  equal(count, 2);
-
-  // // NOTHING SHOULD CHANGE AFTER THIS POINT BECAUSE OF THE CHAINED *
-
-  set(Ember.get(obj, 'foo'), 'bar', { baz: { biff: 'BOOM' } });
-  equal(val, 'BLARG');
-  equal(count, 2);
-
-  set(obj, 'foo', { bar: { baz: { biff: 'BLARG' } } });
-  equal(val, 'BLARG');
-  equal(count, 2);
-
-
-});
-
 testBoth('depending on a Global chain', function(get, set) {
 
   var val ;
@@ -627,34 +598,6 @@ testBoth('depending on a Global chain', function(get, set) {
   equal(count, 6, 'should be not have invoked observer');
 });
 
-testBoth('depending on complex chain', function(get, set) {
-
-  var val ;
-  Ember.addObserver(obj, 'Global.foo.bar*baz.biff', function(target, key, value){
-    val = value;
-    count++;
-  });
-
-  set(Ember.getPath(Global, 'foo.bar.baz'),  'biff', 'BUZZ');
-  equal(val, 'BUZZ');
-  equal(count, 1);
-
-  set(Ember.getPath(Global, 'foo.bar'),  'baz', { biff: 'BLARG' });
-  equal(val, 'BLARG');
-  equal(count, 2);
-
-  // // NOTHING SHOULD CHANGE AFTER THIS POINT BECAUSE OF THE CHAINED *
-
-  set(Ember.get(Global, 'foo'),  'bar', { baz: { biff: 'BOOM' } });
-  equal(val, 'BLARG');
-  equal(count, 2);
-
-  set(Global, 'foo', { bar: { baz: { biff: 'BLARG' } } });
-  equal(val, 'BLARG');
-  equal(count, 2);
-
-});
-
 // ..........................................................
 // SETTING IDENTICAL VALUES
 //
@@ -678,24 +621,31 @@ testBoth('setting simple prop should not trigger', function(get, set) {
   equal(count, 1, 'should not trigger observer again');
 });
 
-testBoth('setting computed prop with same value should not trigger', function(get, set) {
-
+// The issue here is when a computed property is directly set with a value, then has a
+// dependent key change (which triggers a cache expiration and recomputation), observers will
+// not be fired if the CP setter is called with the last set value.
+testBoth('setting a cached computed property whose value has changed should trigger', function(get, set) {
   var obj = {};
+
   Ember.defineProperty(obj, 'foo', Ember.computed(function(key, value) {
-    if (value !== undefined) this._value = value+' X';
-    return this._value;
-  }));
+    if (arguments.length === 2) { return value; }
+    return get(this, 'baz');
+  }).property('baz').cacheable());
 
   var count = 0;
 
   Ember.addObserver(obj, 'foo', function() { count++; });
 
   set(obj, 'foo', 'bar');
-  equal(count, 1, 'should trigger observer since we do not have existing val');
+  equal(count, 1);
+  equal(get(obj, 'foo'), 'bar');
 
-  set(obj, 'foo', 'baz');
-  equal(count, 2, 'should trigger observer');
+  set(obj, 'baz', 'qux');
+  equal(count, 2);
+  equal(get(obj, 'foo'), 'qux');
 
-  set(obj, 'foo', 'baz');
-  equal(count, 2, 'should not trigger observer again');
+  get(obj, 'foo');
+  set(obj, 'foo', 'bar');
+  equal(count, 3);
+  equal(get(obj, 'foo'), 'bar');
 });

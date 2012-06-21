@@ -1,14 +1,51 @@
 abort "Please use Ruby 1.9 to build Ember.js!" if RUBY_VERSION !~ /^1\.9/
 
 require "bundler/setup"
-require "erb"
-require 'rake-pipeline'
-require "ember_docs/cli"
-require "colored"
 
 def pipeline
+  require 'rake-pipeline'
   Rake::Pipeline::Project.new("Assetfile")
 end
+
+def setup_uploader(root=Dir.pwd)
+  require './lib/github_uploader'
+
+  login = origin = nil
+
+  Dir.chdir(root) do
+    # get the github user name
+    login = `git config github.user`.chomp
+
+    # get repo from git config's origin url
+    origin = `git config remote.origin.url`.chomp # url to origin
+    # extract USERNAME/REPO_NAME
+    # sample urls: https://github.com/emberjs/ember.js.git
+    #              git://github.com/emberjs/ember.js.git
+    #              git@github.com:emberjs/ember.js.git
+    #              git@github.com:emberjs/ember.js
+  end
+
+  repoUrl = origin.match(/github\.com[\/:]((.+?)\/(.+?))(\.git)?$/)
+  username = ENV['GH_USERNAME'] || repoUrl[2] # username part of origin url
+  repo = ENV['GH_REPO'] || repoUrl[3] # repository name part of origin url
+
+  token = ENV["GH_OAUTH_TOKEN"]
+
+  uploader = GithubUploader.new(login, username, repo, token)
+  uploader.authorize
+
+  uploader
+end
+
+def upload_file(uploader, filename, description, file)
+  print "Uploading #{filename}..."
+  if uploader.upload_file(filename, description, file)
+    puts "Success"
+  else
+    puts "Failure"
+  end
+end
+
 
 desc "Strip trailing whitespace for JavaScript files in packages"
 task :strip_whitespace do
@@ -34,105 +71,124 @@ task :clean do
   puts "Done"
 end
 
-namespace :upload do
+desc "Upload latest Ember.js build to GitHub repository"
+task :upload_latest => :dist do
+  uploader = setup_uploader
 
-  def get_oauth_token(login)
-    require "rest-client"
+  # Upload minified first, so non-minified shows up on top
+  upload_file(uploader, 'ember-latest.min.js', "Ember.js Master (minified)", "dist/ember.min.js")
+  upload_file(uploader, 'ember-latest.js', "Ember.js Master", "dist/ember.js")
+end
 
-    token = nil
-
-    if !File.exists?(".github-upload-token")
-      puts "There is no file named .github-upload-token in this folder. This file holds the OAuth token needed to communicate with GitHub."
-      puts "You will be asked to enter your GitHub password so a new OAuth token will be created."
-      print "GitHub Password: "
-      system "stty -echo" # disable echoing of entered chars so password is not shown on console
-      pw = STDIN.gets.chomp
-      system "stty echo" # enable echoing of entered chars
-      puts ""
-
-      # check if the user already granted access for Ember.js Uploader by checking the available authorizations
-      response = RestClient.get "https://#{login}:#{pw}@api.github.com/authorizations"
-      JSON.parse(response.to_str).each do |auth|
-        if auth["note"] == "Ember.js Uploader"
-          # user already granted access, so we reuse the existing token
-          token = auth["token"]
-        end
-      end
-
-      ## we need to create a new token
-      if (token == nil)
-        payload = {
-          :scopes => ["public_repo"],
-          :note => "Ember.js Uploader",
-          :note_url => "https://github.com/emberjs/ember.js"
-        }
-        response = RestClient.post "https://#{login}:#{pw}@api.github.com/authorizations", payload.to_json, :content_type => :json
-        token = JSON.parse(response.to_str)["token"]
-      end
-
-      # finally save the token into .github-upload-token
-      File.open(".github-upload-token", 'w') {|f| f.write(token)}
-    else
-      # if the file already exists, get the token from it
-      token = File.open(".github-upload-token", "rb").read
-    end
-
-    return token
+namespace :docs do
+  def doc_args
+    "#{Dir.glob("packages/ember-*").join(' ')} -E #{Dir.glob("packages/ember-*/tests").join(' ')} -t docs.emberjs.com"
   end
 
-  def upload_file(login, username, repo, filename, description, file)
-    require "github_api"
-    # We can stop requiring nokogiri when github_api is updated
-    # # We can stop requiring nokogiri when github_api is updated
-    require "nokogiri"
-
-    token = get_oauth_token(login)
-    gh = Github.new :user => username, :repo => repo, :oauth_token => token
-
-    # remvove previous download with the same name
-    gh.repos.downloads do |download|
-      if filename == download.name
-        gh.repos.delete_download login, repo, download.id
-      end
-    end
-
-    # step 1
-    hash = gh.repos.create_download username, repo,
-      "name" => filename,
-      "size" => File.size(file),
-      "description" => description,
-      "content_type" => "application/json"
-
-    # step 2
-    gh.repos.upload hash, file
-
-    puts "uploaded file #{filename}"
+  desc "Preview Ember Docs (does not auto update)"
+  task :preview do
+    require "ember_docs/cli"
+    EmberDocs::CLI.start("preview #{doc_args}".split(' '))
   end
 
-  ### UPLOAD LATEST EMBERJS BUILD TASK ###
-  desc "Upload latest Ember.js build to GitHub repository"
-  task :latest => :dist do
+  desc "Build Ember Docs"
+  task :build do
+    require "ember_docs/cli"
+    EmberDocs::CLI.start("generate #{doc_args} -o docs".split(' '))
+  end
 
-    # get the github user name
-    login = `git config github.user`.chomp
+  desc "Build and upload Ember Docs"
+  task :upload => :build do
+    raise "missing environment variable EMBER_DOCS_UPLOAD_PATH" unless ENV.has_key?('EMBER_DOCS_UPLOAD_PATH')
+    Rake::Task["docs:build"].invoke
+    upload_path = ENV['EMBER_DOCS_UPLOAD_PATH']
+    FileUtils.cd(upload_path) do
+      system "git pull"
+    end
+    FileUtils.rm_rf("#{upload_path}/html.old") if Dir.exists?("#{upload_path}/html.old")
+    FileUtils.mv("#{upload_path}/html", "#{upload_path}/html.old")
+    FileUtils.cp_r("docs", "#{upload_path}/html")
+    FileUtils.cd(upload_path) do
+      system "git add html && git commit --all -m 'Upload generated API docs' && git push heroku master"
+    end
+    FileUtils.rm_rf("#{upload_path}/html.old")
+  end
 
-    # get repo from git config's origin url
-    origin = `git config remote.origin.url`.chomp # url to origin
-    # extract USERNAME/REPO_NAME
-    # sample urls: https://github.com/emberjs/ember.js.git
-    #              git://github.com/emberjs/ember.js.git
-    #              git@github.com:emberjs/ember.js.git
-    #              git@github.com:emberjs/ember.js
-
-    repoUrl = origin.match(/github\.com[\/:]((.+?)\/(.+?))(\.git)?$/)
-    username = repoUrl[2] # username part of origin url
-    repo = repoUrl[3] # repository name part of origin url
-
-    upload_file login, username, repo, 'ember-latest.js', "Ember.js Master", "dist/ember.js"
-    upload_file login, username, repo, 'ember-latest.min.js', "Ember.js Master (minified)", "dist/ember.min.js"
-
+  desc "Remove Ember Docs"
+  task :clean do
+    rm_r "docs"
   end
 end
+
+desc "Run tests with phantomjs"
+task :test, [:suite] => :dist do |t, args|
+  require "colored"
+
+  unless system("which phantomjs > /dev/null 2>&1")
+    abort "PhantomJS is not installed. Download from http://phantomjs.org"
+  end
+
+  packages = Dir['packages/*/tests'].map{|p| p.split('/')[1] }
+
+  suites = {
+    :default => packages.map{|p| "package=#{p}" },
+    :runtime => [ "package=ember-metal,ember-runtime" ],
+    # testing older jQuery 1.6.4 for compatibility
+    :all => packages.map{|p| "package=#{p}" } +
+            ["package=all&jquery=1.6.4&nojshint=true",
+             "package=all&jquery=git&nojshint=true",
+              "package=all&extendprototypes=true&nojshint=true",
+              "package=all&extendprototypes=true&jquery=1.6.4&nojshint=true",
+              "package=all&extendprototypes=true&jquery=git&nojshint=true",
+              "package=all&nocpdefaultcacheable=true&nojshint=true",
+              "package=all&noviewpreservescontext=true&nojshint=true",
+              "package=all&dist=build&nojshint=true"]
+  }
+
+  packages.each do |package|
+    suites[package.to_sym] = ["package=#{package}"]
+  end
+
+  if ENV['TEST']
+    opts = [ENV['TEST']]
+  else
+    suite = args[:suite] || :default
+    opts = suites[suite.to_sym]
+  end
+
+  unless opts
+    abort "No suite named: #{suite}"
+  end
+
+  success = true
+  opts.each do |opt|
+    cmd = "phantomjs tests/qunit/run-qunit.js \"file://localhost#{File.dirname(__FILE__)}/tests/index.html?#{opt}\""
+    system(cmd)
+
+    # A bit of a hack until we can figure this out on Travis
+    tries = 0
+    while tries < 3 && $?.exitstatus === 124
+      tries += 1
+      puts "Timed Out. Trying again..."
+      system(cmd)
+    end
+
+    success &&= $?.success?
+  end
+
+  if success
+    puts "Tests Passed".green
+  else
+    puts "Tests Failed".red
+    exit(1)
+  end
+end
+
+desc "Automatically run tests (Mac OS X only)"
+task :autotest do
+  system("kicker -e 'rake test' packages")
+end
+
 
 ### RELEASE TASKS ###
 
@@ -232,13 +288,21 @@ namespace :release do
       end
     end
 
+    desc "Upload release"
+    task :upload do
+      uploader = setup_uploader
+
+      # Upload minified first, so non-minified shows up on top
+      upload_file(uploader, "ember-#{EMBER_VERSION}.min.js", "Ember.js #{EMBER_VERSION} (minified)", "dist/ember.min.js")
+      upload_file(uploader, "ember-#{EMBER_VERSION}.js", "Ember.js #{EMBER_VERSION}", "dist/ember.js")
+    end
+
     desc "Prepare for a new release"
     task :prepare => [:update, :changelog, :bump_version]
 
     desc "Commit the new release"
-    task :deploy => [:commit, :tag, :push]
+    task :deploy => [:commit, :tag, :push, :upload]
   end
-
 
   namespace :starter_kit do
     ember_output = "tmp/starter-kit/js/libs/ember-#{EMBER_VERSION}.js"
@@ -255,6 +319,9 @@ namespace :release do
         rm_rf Dir["js/libs/ember*.js"]
       end
     end
+
+    file "dist/ember.js" => :dist
+    file "dist/ember.min.js" => :dist
 
     task "dist/starter-kit.#{EMBER_VERSION}.zip" => ["tmp/starter-kit/index.html"] do
       mkdir_p "dist"
@@ -311,6 +378,14 @@ namespace :release do
       end
     end
 
+    desc "Upload release"
+    task :upload do
+      uploader = setup_uploader("tmp/starter-kit")
+
+      # Upload minified first, so non-minified shows up on top
+      upload_file(uploader, "starter-kit.#{EMBER_VERSION}.zip", "Ember.js #{EMBER_VERSION} Starter Kit", "dist/starter-kit.#{EMBER_VERSION}.zip")
+    end
+
     desc "Build the Ember.js starter kit"
     task :build => "dist/starter-kit.#{EMBER_VERSION}.zip"
 
@@ -318,88 +393,136 @@ namespace :release do
     task :prepare => [:build]
 
     desc "Release starter-kit"
+    task :deploy => [:update, :upload]
+  end
+
+  namespace :examples do
+    ember_min_output = "tmp/examples/lib/ember.min.js"
+
+    task :pull => "tmp/examples" do
+      Dir.chdir("tmp/examples") do
+        sh "git pull origin master"
+      end
+    end
+
+    task :clean => :pull do
+      Dir.chdir("tmp/examples") do
+        rm_rf Dir["lib/ember.min.js"]
+      end
+    end
+
+    file "tmp/examples" do
+      mkdir_p "tmp"
+
+      Dir.chdir("tmp") do
+        sh "git clone git@github.com:emberjs/examples.git"
+      end
+    end
+
+    file ember_min_output => [:clean, "tmp/examples", "dist/ember.min.js"] do
+      sh "cp dist/ember.min.js #{ember_min_output}"
+    end
+
+    desc "Update examples repo"
+    task :update => ember_min_output do
+      puts "Updating examples repo"
+      unless pretend?
+        Dir.chdir("tmp/examples") do
+          sh "git add -A"
+          sh "git commit -m 'Updated to #{EMBER_VERSION}'"
+
+          print "Are you sure you want to push the examples repo to github? (y/N) "
+          res = STDIN.gets.chomp
+          if res == 'y'
+            sh "git push origin master"
+            sh "git push --tags"
+          else
+            puts "Not pushing"
+          end
+        end
+      end
+    end
+
+    desc "Prepare examples for release"
+    task :prepare => []
+
+    desc "Update examples repo"
+    task :deploy => [:update]
+  end
+
+  namespace :website do
+
+    file "tmp/website" do
+      mkdir_p "tmp"
+
+      Dir.chdir("tmp") do
+        sh "git clone git@github.com:emberjs/website.git"
+      end
+    end
+
+    task :pull => "tmp/website" do
+      Dir.chdir("tmp/website") do
+        sh "git pull origin master"
+      end
+    end
+
+    file "dist/ember.min.js" => :dist
+
+    file "tmp/website/source/about.html.erb" => [:pull, "dist/ember.min.js"] do
+      require 'zlib'
+
+      about = File.read("tmp/website/source/about.html.erb")
+      min_gz = Zlib::Deflate.deflate(File.read("dist/ember.min.js")).bytes.count / 1024
+
+      about.gsub! %r{https://github\.com/downloads/emberjs/ember\.js/ember-\d(\.\d+)*\.min\.js},
+        %{https://github.com/downloads/emberjs/ember.js/ember-#{EMBER_VERSION}.min.js}
+
+      about.gsub! %r{https://github\.com/downloads/emberjs/starter-kit/starter-kit\.\d(\.\d+)*\.zip},
+        %{https://github.com/downloads/emberjs/starter-kit/starter-kit.#{EMBER_VERSION}.zip}
+
+      about.gsub! /Ember \d(\.\d+)*/, "Ember #{EMBER_VERSION}"
+
+      about.gsub! /\d+k min\+gzip/, "#{min_gz}k min+gzip"
+
+      File.open("tmp/website/source/about.html.erb", "w") { |f| f.write about }
+    end
+
+    task :about => "tmp/website/source/about.html.erb"
+
+    desc "Update website repo"
+    task :update => :about do
+      puts "Updating website repo"
+      unless pretend?
+        Dir.chdir("tmp/website") do
+          sh "git add -A"
+          sh "git commit -m 'Updated to #{EMBER_VERSION}'"
+
+          print "Are you sure you want to push the website repo to github? (y/N) "
+          res = STDIN.gets.chomp
+          if res == 'y'
+            sh "git push origin master"
+            sh "git push --tags"
+          else
+            puts "Not pushing"
+          end
+        end
+        puts "NOTE: You still need to run `rake deploy` from within the website repo."
+      end
+    end
+
+    desc "Prepare website for release"
+    task :prepare => []
+
+    desc "Update website repo"
     task :deploy => [:update]
   end
 
   desc "Prepare Ember for new release"
-  task :prepare => ['framework:prepare', 'starter_kit:prepare']
+  task :prepare => [:clean, 'framework:prepare', 'starter_kit:prepare', 'examples:prepare', 'website:prepare']
 
   desc "Deploy a new Ember release"
-  task :deploy => ['framework:deploy', 'starter_kit:deploy']
+  task :deploy => ['framework:deploy', 'starter_kit:deploy', 'examples:deploy', 'website:deploy']
 
-end
-
-namespace :docs do
-  def doc_args
-    "#{Dir.glob("packages/ember-*").join(' ')} -E #{Dir.glob("packages/ember-*/tests").join(' ')} -t docs.emberjs.com"
-  end
-
-  desc "Preview Ember Docs (does not auto update)"
-  task :preview do
-    EmberDocs::CLI.start("preview #{doc_args}".split(' '))
-  end
-
-  desc "Build Ember Docs"
-  task :build do
-    EmberDocs::CLI.start("generate #{doc_args} -o docs".split(' '))
-  end
-
-  desc "Remove Ember Docs"
-  task :clean do
-    rm_r "docs"
-  end
-end
-
-desc "Run tests with phantomjs"
-task :test, [:suite] => :dist do |t, args|
-  unless system("which phantomjs > /dev/null 2>&1")
-    abort "PhantomJS is not installed. Download from http://phantomjs.org"
-  end
-
-  packages = Dir['packages/*/tests'].map{|p| p.split('/')[1] }
-
-  suites = {
-    :default => packages.map{|p| "package=#{p}" },
-    # testing older jQuery 1.6.4 for compatibility
-    :all => packages.map{|p| "package=#{p}" } +
-            ["package=all&jquery=1.6.4&nojshint=true",
-             "package=all&jquery=git&nojshint=true",
-              "package=all&extendprototypes=true&nojshint=true",
-              "package=all&extendprototypes=true&jquery=1.6.4&nojshint=true",
-              "package=all&extendprototypes=true&jquery=git&nojshint=true",
-              "package=all&dist=build&nojshint=true"]
-  }
-
-  if ENV['TEST']
-    opts = [ENV['TEST']]
-  else
-    suite = args[:suite] || :default
-    opts = suites[suite.to_sym]
-  end
-
-  unless opts
-    abort "No suite named: #{suite}"
-  end
-
-  cmd = opts.map do |opt|
-    "phantomjs tests/qunit/run-qunit.js \"file://localhost#{File.dirname(__FILE__)}/tests/index.html?#{opt}\""
-  end.join(' && ')
-
-  # Run the tests
-  puts "Running: #{opts.join(", ")}"
-  success = system(cmd)
-
-  if success
-    puts "Tests Passed".green
-  else
-    puts "Tests Failed".red
-    exit(1)
-  end
-end
-
-desc "Automatically run tests (Mac OS X only)"
-task :autotest do
-  system("kicker -e 'rake test' packages")
 end
 
 task :default => :dist

@@ -11,12 +11,13 @@ module("Ember.View - Class Name Bindings");
 test("should apply bound class names to the element", function() {
   var view = Ember.View.create({
     classNameBindings: ['priority', 'isUrgent', 'isClassified:classified',
-                        'canIgnore', 'messages.count', 'messages.resent:is-resent'],
+                        'canIgnore', 'messages.count', 'messages.resent:is-resent', 'isNumber:is-number'],
 
     priority: 'high',
     isUrgent: true,
     isClassified: true,
     canIgnore: false,
+		isNumber: 5,
 
     messages: {
       count: 'five-messages',
@@ -24,12 +25,16 @@ test("should apply bound class names to the element", function() {
     }
   });
 
-  view.createElement();
+  Ember.run(function(){
+    view.createElement();
+  });
+  
   ok(view.$().hasClass('high'), "adds string values as class name");
   ok(view.$().hasClass('is-urgent'), "adds true Boolean values by dasherizing");
   ok(view.$().hasClass('classified'), "supports customizing class name for Boolean values");
   ok(view.$().hasClass('five-messages'), "supports paths in bindings");
   ok(view.$().hasClass('is-resent'), "supports customing class name for paths");
+  ok(view.$().hasClass('is-number'), "supports colon syntax with truthy properties");
   ok(!view.$().hasClass('can-ignore'), "does not add false Boolean values as class");
 });
 
@@ -49,13 +54,14 @@ test("should add, remove, or change class names if changed after element is crea
     })
   });
 
-  view.createElement();
-
-  set(view, 'priority', 'orange');
-  set(view, 'isUrgent', false);
-  set(view, 'canIgnore', true);
-  setPath(view, 'messages.count', 'six-messages');
-  setPath(view, 'messages.resent', true );
+  Ember.run(function(){
+    view.createElement();
+    set(view, 'priority', 'orange');
+    set(view, 'isUrgent', false);
+    set(view, 'canIgnore', true);
+    setPath(view, 'messages.count', 'six-messages');
+    setPath(view, 'messages.resent', true );
+  });
 
   ok(view.$().hasClass('orange'), "updates string values");
   ok(!view.$().hasClass('high'), "removes old string value");
@@ -70,12 +76,19 @@ test("should add, remove, or change class names if changed after element is crea
 });
 
 test("classNames should not be duplicated on rerender", function(){
-  var view = Ember.View.create({
-    classNameBindings: ['priority'],
-    priority: 'high'
+  var view;
+  
+  Ember.run(function(){
+    view = Ember.View.create({
+      classNameBindings: ['priority'],
+      priority: 'high'
+    });
   });
+  
 
-  view.createElement();
+  Ember.run(function(){
+    view.createElement();
+  });
 
   equal(view.$().attr('class'), 'ember-view high');
 
@@ -92,7 +105,9 @@ test("classNames removed by a classNameBindings observer should not re-appear on
     isUrgent: true
   });
 
-  view.createElement();
+  Ember.run(function(){
+    view.createElement();
+  });
 
   equal(view.$().attr('class'), 'ember-view is-urgent');
 

@@ -143,8 +143,10 @@ Ember.Select = Ember.View.extend(
 
   _triggerChange: function() {
     var selection = get(this, 'selection');
+    var value = get(this, 'value');
 
     if (selection) { this.selectionDidChange(); }
+    if (value) { this.valueDidChange(); }
 
     this._change();
   },

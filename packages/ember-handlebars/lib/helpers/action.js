@@ -180,7 +180,7 @@ EmberHandlebars.registerHelper('action', function(actionName, options) {
   view = get(view, 'concreteView');
 
   if (hash.target) {
-    if (hash.target == 'this') {
+    if (hash.target === 'this') {
       target = this;
     } else {
       target = getPath(this, hash.target, options);

@@ -180,7 +180,11 @@ EmberHandlebars.registerHelper('action', function(actionName, options) {
   view = get(view, 'concreteView');
 
   if (hash.target) {
-    target = getPath(this, hash.target, options);
+    if (hash.target == 'this') {
+      target = this;
+    } else {
+      target = getPath(this, hash.target, options);
+    }
   } else if (controller = options.data.keywords.controller) {
     target = get(controller, 'target');
   }

@@ -195,12 +195,15 @@ test("Ember.SelectedOption knows when it is selected when content has changed an
     choices: Ember.A([{id: 1, label: 'First'}, {id: 2, label: 'Second'}])
   });
 
-  select = Ember.Select.create({
-    target: a,
-    contentBinding: 'target.choices',
-    valueBinding: 'target.value',
-    optionLabelPath: 'content.label',
-    optionValuePath: 'content.id'
+  Ember.run(function() {
+
+    select = Ember.Select.create({
+      target: a,
+      contentBinding: 'target.choices',
+      valueBinding: 'target.value',
+      optionLabelPath: 'content.label',
+      optionValuePath: 'content.id'
+    });
   });
 
   append();

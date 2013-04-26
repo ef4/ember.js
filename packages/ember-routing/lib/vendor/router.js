@@ -298,6 +298,7 @@ define("router",
         if (handler) {
           if (handler.enter) { handler.enter(); }
           if (handler.setup) { handler.setup(); }
+          if (handler.setupTemplate) { handler.setupTemplate(); }
         }
       }
     }
@@ -340,6 +341,7 @@ define("router",
       if (handler){
         if (handler.enter) { handler.enter(); }
         if (handler.setup) { handler.setup(error); }
+        if (handler.setupTemplate) { handler.setupTemplate(error); }
       }
     }
 
@@ -488,6 +490,9 @@ define("router",
           if (false === handler.setup(context)) {
             aborted = true;
           }
+        }
+        if (!aborted && handler.setupTemplate) {
+          handler.setupTemplate(context);
         }
       });
 

@@ -12,7 +12,6 @@ import Test from "ember-testing/test";
 
 var helper = Test.registerHelper;
 var asyncHelper = Test.registerAsyncHelper;
-var countAsync = 0;
 
 function currentRouteName(app) {
   var appController = app.__container__.lookup('controller:application');
@@ -200,11 +199,6 @@ function andThen(app, callback) {
 
 function wait(app, value) {
   return Test.promise(function(resolve) {
-    // If this is the first async promise, kick off the async test
-    if (++countAsync === 1) {
-      Test.adapter.asyncStart();
-    }
-
     // Every 10ms, poll for the async thing to have finished
     var watcher = setInterval(function() {
       var router = app.__container__.lookup('router:main');
@@ -227,11 +221,6 @@ function wait(app, value) {
       }
       // Stop polling
       clearInterval(watcher);
-
-      // If this is the last async promise, end the async test
-      if (--countAsync === 0) {
-        Test.adapter.asyncEnd();
-      }
 
       // Synchronously resolve the promise
       run(null, resolve, value);

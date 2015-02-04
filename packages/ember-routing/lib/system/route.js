@@ -1808,7 +1808,8 @@ var Route = EmberObject.extend(ActionHandler, Evented, {
     var renderOptions = buildRenderOptions(this, namePassed, name, options);
 
     var self = this;
-    var viewBuilder = function() { return buildView(self, options, namePassed, name, renderOptions, templateName); };
+    var hadRenderArguments = !(arguments.length === 0 || Ember.isEmpty(arguments[0]));
+    var viewBuilder = function() { return buildView(self, options, namePassed, name, renderOptions, templateName, hadRenderArguments); };
     if (renderOptions.outlet === 'main') { this.lastRenderedTemplate = name; }
     //appendView(this, view, renderOptions);
     appendLiveRoute(this, renderOptions, viewBuilder);
@@ -1958,7 +1959,7 @@ function buildRenderOptions(route, namePassed, name, options) {
   return renderOptions;
 }
 
-function buildView(route, options, namePassed, name, renderOptions, templateName) {
+function buildView(route, options, namePassed, name, renderOptions, templateName, hadRenderArguments) {
   var LOG_VIEW_LOOKUPS = get(route.router, 'namespace.LOG_VIEW_LOOKUPS');
   var viewName = options && options.view || namePassed && name || route.viewName || name;
   var view, template;
@@ -1975,7 +1976,7 @@ function buildView(route, options, namePassed, name, renderOptions, templateName
   } else {
     template = route.container.lookup('template:' + templateName);
     if (!template) {
-      Ember.assert("Could not find \"" + name + "\" template or view.", arguments.length === 0 || Ember.isEmpty(arguments[0]));
+      Ember.assert("Could not find \"" + name + "\" template or view.", !hadRenderArguments);
       if (LOG_VIEW_LOOKUPS) {
         Ember.Logger.info("Could not find \"" + name + "\" template or view. Nothing will be rendered", { fullName: 'template:' + name });
       }
@@ -2025,7 +2026,6 @@ function appendLiveRoute(route, renderOptions, viewBuilder) {
     outlets: {}
   };
   var lr;
-
   if (!renderOptions.into) {
     lr = {};
     lr[myState.name] = myState;
@@ -2038,11 +2038,13 @@ function appendLiveRoute(route, renderOptions, viewBuilder) {
     }
 
     var view = route._toplevelView = viewBuilder();
-    view.set('_outletProps', {
-      stream : new KeyStream(route.router, 'liveRoutes').get(myState.name)
-    });
-    var instance = route.container.lookup('-application-instance:main');
-    instance.didCreateRootView(view);
+    if (view) {
+      view.set('_outletProps', {
+        stream : new KeyStream(route.router, 'liveRoutes').get(myState.name)
+      });
+      var instance = route.container.lookup('-application-instance:main');
+      instance.didCreateRootView(view);
+    }
   } else {
     lr = route.router.get('liveRoutes');
     var outlets = lr[renderOptions.into].outlets;

@@ -12,8 +12,6 @@ import EmberObject from "ember-runtime/system/object";
 import Evented from "ember-runtime/mixins/evented";
 import EmberRouterDSL from "ember-routing/system/dsl";
 import EmberLocation from "ember-routing/location/api";
-import { OutletView } from "ember-routing-views/views/outlet";
-import KeyStream from "ember-views/streams/key_stream";
 
 import {
   routeArgs,
@@ -140,17 +138,6 @@ var EmberRouter = EmberObject.extend(Evented, {
         throw initialTransition.error;
       }
     }
-    this._insertRootOutlet();
-  },
-
-  _insertRootOutlet: function() {
-    var rootElement = get(this, 'namespace.rootElement');
-    var view = OutletView.create({
-      _outletProps: { stream: new KeyStream(this, 'liveRoutes').get('application') },
-      renderer: this.container.lookup('renderer:-dom') // FIXME
-    });
-    window.tv = view;
-    view.appendTo(rootElement);
   },
 
   setupRouter: function(moduleBasedResolver) {

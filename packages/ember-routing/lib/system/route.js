@@ -24,6 +24,7 @@ import Evented from "ember-runtime/mixins/evented";
 import ActionHandler from "ember-runtime/mixins/action_handler";
 import generateController from "ember-routing/system/generate_controller";
 import { stashParamNames } from "ember-routing/utils";
+import KeyStream from "ember-views/streams/key_stream";
 
 var slice = Array.prototype.slice;
 
@@ -1879,8 +1880,10 @@ var Route = EmberObject.extend(ActionHandler, Evented, {
     @method teardownViews
   */
   teardownViews: function() {
-    var lr = this.router.get('liveRoutes');
-
+    if (this._toplevelView) {
+      this._toplevelView.destroy();
+      delete this._toplevelView;
+    }
     delete this.lastRenderedTemplate;
   }
 });
@@ -2027,6 +2030,19 @@ function appendLiveRoute(route, renderOptions, viewBuilder) {
     lr = {};
     lr[myState.name] = myState;
     route.router.set('liveRoutes', lr);
+
+    // Since we just replaced the top level route state, we need to
+    // kick off rendering by inserting the first view as well.
+    if (route._toplevelView) {
+      route._toplevelView.destroy();
+    }
+
+    var view = route._toplevelView = viewBuilder();
+    view.set('_outletProps', {
+      stream : new KeyStream(route.router, 'liveRoutes').get(myState.name)
+    });
+    var instance = route.container.lookup('-application-instance:main');
+    instance.didCreateRootView(view);
   } else {
     lr = route.router.get('liveRoutes');
     var outlets = lr[renderOptions.into].outlets;

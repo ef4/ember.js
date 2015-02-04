@@ -1807,41 +1807,11 @@ var Route = EmberObject.extend(ActionHandler, Evented, {
 
     var renderOptions = buildRenderOptions(this, namePassed, name, options);
 
-    var LOG_VIEW_LOOKUPS = get(this.router, 'namespace.LOG_VIEW_LOOKUPS');
-    var viewName = options && options.view || namePassed && name || this.viewName || name;
-    var view, template;
-
-    var ViewClass = this.container.lookupFactory('view:' + viewName);
-    if (ViewClass) {
-      view = setupView(ViewClass, renderOptions);
-      if (!get(view, 'template')) {
-        view.set('template', this.container.lookup('template:' + templateName));
-      }
-      if (LOG_VIEW_LOOKUPS) {
-        Ember.Logger.info("Rendering " + renderOptions.name + " with " + view, { fullName: 'view:' + renderOptions.name });
-      }
-    } else {
-      template = this.container.lookup('template:' + templateName);
-      if (!template) {
-        Ember.assert("Could not find \"" + name + "\" template or view.", arguments.length === 0 || Ember.isEmpty(arguments[0]));
-        if (LOG_VIEW_LOOKUPS) {
-          Ember.Logger.info("Could not find \"" + name + "\" template or view. Nothing will be rendered", { fullName: 'template:' + name });
-        }
-        return;
-      }
-      var defaultView = renderOptions.into ? 'view:default' : 'view:toplevel';
-      ViewClass = this.container.lookupFactory(defaultView);
-      view = setupView(ViewClass, renderOptions);
-      if (!get(view, 'template')) {
-        view.set('template', template);
-      }
-      if (LOG_VIEW_LOOKUPS) {
-        Ember.Logger.info("Rendering " + renderOptions.name + " with default view " + view, { fullName: 'view:' + renderOptions.name });
-      }
-    }
-
+    var self = this;
+    var viewBuilder = function(){ return buildView(self, options, namePassed, name, renderOptions, templateName); };
     if (renderOptions.outlet === 'main') { this.lastRenderedTemplate = name; }
-    appendView(this, view, renderOptions);
+    //appendView(this, view, renderOptions);
+    appendVirtual(this, renderOptions, viewBuilder);
   },
 
   /**
@@ -1995,6 +1965,42 @@ function buildRenderOptions(route, namePassed, name, options) {
   return renderOptions;
 }
 
+function buildView(route, options, namePassed, name, renderOptions, templateName) {
+  var LOG_VIEW_LOOKUPS = get(route.router, 'namespace.LOG_VIEW_LOOKUPS');
+  var viewName = options && options.view || namePassed && name || route.viewName || name;
+  var view, template;
+
+  var ViewClass = route.container.lookupFactory('view:' + viewName);
+  if (ViewClass) {
+    view = setupView(ViewClass, renderOptions);
+    if (!get(view, 'template')) {
+      view.set('template', route.container.lookup('template:' + templateName));
+    }
+    if (LOG_VIEW_LOOKUPS) {
+      Ember.Logger.info("Rendering " + renderOptions.name + " with " + view, { fullName: 'view:' + renderOptions.name });
+    }
+  } else {
+    template = route.container.lookup('template:' + templateName);
+    if (!template) {
+      Ember.assert("Could not find \"" + name + "\" template or view.", arguments.length === 0 || Ember.isEmpty(arguments[0]));
+      if (LOG_VIEW_LOOKUPS) {
+        Ember.Logger.info("Could not find \"" + name + "\" template or view. Nothing will be rendered", { fullName: 'template:' + name });
+      }
+      return;
+    }
+    var defaultView = renderOptions.into ? 'view:default' : 'view:toplevel';
+    ViewClass = route.container.lookupFactory(defaultView);
+    view = setupView(ViewClass, renderOptions);
+    if (!get(view, 'template')) {
+      view.set('template', template);
+    }
+    if (LOG_VIEW_LOOKUPS) {
+      Ember.Logger.info("Rendering " + renderOptions.name + " with default view " + view, { fullName: 'view:' + renderOptions.name });
+    }
+  }
+  return view;
+}
+
 function setupView(ViewClass, options) {
   return ViewClass.create({
     _debugTemplateName: options.name,
@@ -2028,10 +2034,50 @@ function appendView(route, view, options) {
   }
 }
 
-function generateOutletTeardown(parentView, outlet) {
-  return function() {
-    parentView.disconnectOutlet(outlet);
+function prune(liveRoutes, name) {
+  var elt = liveRoutes.names[name];
+  if (elt) {
+    for (var outletName in elt.outlets) {
+      prune(liveRoutes, elt.outlets[outletName]);
+    }
+  }
+  delete liveRoutes.names[name];
+}
+
+function appendVirtual(route, renderOptions, viewBuilder) {
+  var myState = {
+    renderedBy: route,
+    name: renderOptions.name,
+    renderOptions: renderOptions,
+    viewBuilder: viewBuilder,
+    outlets: {}
   };
+  var lr;
+
+  if (!renderOptions.into) {
+    lr = {'__top__' : myState, names: {} };
+    lr.names[myState.name] = myState;
+    route.router.set('liveRoutes', lr);
+  } else {
+    lr = route.router.get('liveRoutes');
+    var outlets = lr.names[renderOptions.into].outlets;
+    var outlet = renderOptions.outlet;
+    if (outlets[outlet]) {
+      prune(lr, outlets[outlet].name);
+    }
+    set(outlets, outlet, myState);
+    lr.names[myState.name] = myState;
+
+    // FIXME: This still needs a home, but now it's not necessarily
+    // synchronous with us here:
+    //
+    // Notify the application instance that we have created the root-most
+    // view. It is the responsibility of the instance to tell the root view
+    // how to render, typically by appending it to the application's
+    // `rootElement`.
+    // var instance = route.container.lookup('-application-instance:main');
+    // instance.didCreateRootView(view);
+  }
 }
 
 function getFullQueryParams(router, state) {

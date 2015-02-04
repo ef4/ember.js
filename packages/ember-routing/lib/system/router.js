@@ -146,7 +146,7 @@ var EmberRouter = EmberObject.extend(Evented, {
   _insertRootOutlet: function() {
     var rootElement = get(this, 'namespace.rootElement');
     var view = OutletView.create({
-      _outletProps: { stream: new KeyStream(this, 'liveRoutes').get('__top__') },
+      _outletProps: { stream: new KeyStream(this, 'liveRoutes').get('application') },
       renderer: this.container.lookup('renderer:-dom') // FIXME
     });
     window.tv = view;

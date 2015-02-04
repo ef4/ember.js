@@ -4,8 +4,7 @@ import { get } from "ember-metal/property_get";
 import { set } from "ember-metal/property_set";
 import getProperties from "ember-metal/get_properties";
 import {
-  forEach,
-  replace
+  forEach
 }from "ember-metal/enumerable_utils";
 import isNone from "ember-metal/is_none";
 import { computed } from "ember-metal/computed";
@@ -1808,10 +1807,10 @@ var Route = EmberObject.extend(ActionHandler, Evented, {
     var renderOptions = buildRenderOptions(this, namePassed, name, options);
 
     var self = this;
-    var viewBuilder = function(){ return buildView(self, options, namePassed, name, renderOptions, templateName); };
+    var viewBuilder = function() { return buildView(self, options, namePassed, name, renderOptions, templateName); };
     if (renderOptions.outlet === 'main') { this.lastRenderedTemplate = name; }
     //appendView(this, view, renderOptions);
-    appendVirtual(this, renderOptions, viewBuilder);
+    appendLiveRoute(this, renderOptions, viewBuilder);
   },
 
   /**
@@ -1880,17 +1879,8 @@ var Route = EmberObject.extend(ActionHandler, Evented, {
     @method teardownViews
   */
   teardownViews: function() {
-    // Tear down the top level view
-    if (this.teardownTopLevelView) { this.teardownTopLevelView(); }
+    var lr = this.router.get('liveRoutes');
 
-    // Tear down any outlets rendered with 'into'
-    var teardownOutletViews = this.teardownOutletViews || [];
-    forEach(teardownOutletViews, function(teardownOutletView) {
-      teardownOutletView();
-    });
-
-    delete this.teardownTopLevelView;
-    delete this.teardownOutletViews;
     delete this.lastRenderedTemplate;
   }
 });
@@ -2009,42 +1999,21 @@ function setupView(ViewClass, options) {
   });
 }
 
-function appendView(route, view, options) {
-  if (options.into) {
-    var parentView = route.router._lookupActiveView(options.into);
-    var teardownOutletView = generateOutletTeardown(parentView, options.outlet);
-    if (!route.teardownOutletViews) { route.teardownOutletViews = []; }
-    replace(route.teardownOutletViews, 0, 0, [teardownOutletView]);
-    parentView.connectOutlet(options.outlet, view);
-  } else {
-    // tear down view if one is already rendered
-    if (route.teardownTopLevelView) {
-      route.teardownTopLevelView();
-    }
-
-    route.router._connectActiveView(options.name, view);
-    route.teardownTopLevelView = function() { view.destroy(); };
-
-    // Notify the application instance that we have created the root-most
-    // view. It is the responsibility of the instance to tell the root view
-    // how to render, typically by appending it to the application's
-    // `rootElement`.
-    var instance = route.container.lookup('-application-instance:main');
-    instance.didCreateRootView(view);
-  }
-}
+// Chopping block:
+//   router._lookupActiveView and friends
+//   view.connectOutlet and disconnect
 
 function prune(liveRoutes, name) {
-  var elt = liveRoutes.names[name];
+  var elt = liveRoutes[name];
   if (elt) {
     for (var outletName in elt.outlets) {
       prune(liveRoutes, elt.outlets[outletName]);
     }
   }
-  delete liveRoutes.names[name];
+  delete liveRoutes[name];
 }
 
-function appendVirtual(route, renderOptions, viewBuilder) {
+function appendLiveRoute(route, renderOptions, viewBuilder) {
   var myState = {
     renderedBy: route,
     name: renderOptions.name,
@@ -2055,18 +2024,18 @@ function appendVirtual(route, renderOptions, viewBuilder) {
   var lr;
 
   if (!renderOptions.into) {
-    lr = {'__top__' : myState, names: {} };
-    lr.names[myState.name] = myState;
+    lr = {};
+    lr[myState.name] = myState;
     route.router.set('liveRoutes', lr);
   } else {
     lr = route.router.get('liveRoutes');
-    var outlets = lr.names[renderOptions.into].outlets;
+    var outlets = lr[renderOptions.into].outlets;
     var outlet = renderOptions.outlet;
     if (outlets[outlet]) {
       prune(lr, outlets[outlet].name);
     }
     set(outlets, outlet, myState);
-    lr.names[myState.name] = myState;
+    lr[myState.name] = myState;
 
     // FIXME: This still needs a home, but now it's not necessarily
     // synchronous with us here:

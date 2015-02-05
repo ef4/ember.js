@@ -1809,7 +1809,7 @@ var Route = EmberObject.extend(ActionHandler, Evented, {
 
     var self = this;
     var hadRenderArguments = !(arguments.length === 0 || Ember.isEmpty(arguments[0]));
-    var viewBuilder = function() { return buildView(self, options, namePassed, name, renderOptions, templateName, hadRenderArguments); };
+    var viewBuilder = function(opts) { return buildView(self, options, namePassed, name, renderOptions, templateName, hadRenderArguments, (opts && opts.topLevel)); };
     if (renderOptions.outlet === 'main') { this.lastRenderedTemplate = name; }
     //appendView(this, view, renderOptions);
     appendLiveRoute(this, renderOptions, viewBuilder);
@@ -1948,7 +1948,7 @@ function buildRenderOptions(route, namePassed, name, options) {
   }
 
   var renderOptions = {
-    into: options && options.into ? options.into.replace(/\//g, '.') : parentTemplate(route),
+    into: options && options.into && options.into.replace(/\//g, '.'),
     outlet: (options && options.outlet) || 'main',
     name: name,
     controller: controller
@@ -1959,11 +1959,10 @@ function buildRenderOptions(route, namePassed, name, options) {
   return renderOptions;
 }
 
-function buildView(route, options, namePassed, name, renderOptions, templateName, hadRenderArguments) {
+function buildView(route, options, namePassed, name, renderOptions, templateName, hadRenderArguments, isTopLevel) {
   var LOG_VIEW_LOOKUPS = get(route.router, 'namespace.LOG_VIEW_LOOKUPS');
   var viewName = options && options.view || namePassed && name || route.viewName || name;
   var view, template;
-
   var ViewClass = route.container.lookupFactory('view:' + viewName);
   if (ViewClass) {
     view = setupView(ViewClass, renderOptions);
@@ -1982,7 +1981,7 @@ function buildView(route, options, namePassed, name, renderOptions, templateName
       }
       return;
     }
-    var defaultView = renderOptions.into ? 'view:default' : 'view:toplevel';
+    var defaultView = isTopLevel ? 'view:default' : 'view:toplevel';
     ViewClass = route.container.lookupFactory(defaultView);
     view = setupView(ViewClass, renderOptions);
     if (!get(view, 'template')) {
@@ -2006,6 +2005,8 @@ function setupView(ViewClass, options) {
 // Chopping block:
 //   router._lookupActiveView and friends
 //   view.connectOutlet and disconnect
+//   parentTemplate
+//   lastRenderedTemplate
 
 function prune(liveRoutes, name) {
   var elt = liveRoutes[name];
@@ -2017,6 +2018,18 @@ function prune(liveRoutes, name) {
   delete liveRoutes[name];
 }
 
+function liveParentRoute(liveRoutes, route) {
+  if (!liveRoutes) {
+    return;
+  }
+  while ( route = parentRoute(route) ) {
+    var routeName = route.routeName;
+    if (liveRoutes[routeName]) {
+      return routeName;
+    }
+  }
+}
+
 function appendLiveRoute(route, renderOptions, viewBuilder) {
   var myState = {
     renderedBy: route,
@@ -2025,29 +2038,31 @@ function appendLiveRoute(route, renderOptions, viewBuilder) {
     viewBuilder: viewBuilder,
     outlets: {}
   };
-  var lr;
-  if (!renderOptions.into) {
-    lr = {};
-    lr[myState.name] = myState;
-    route.router.set('liveRoutes', lr);
+  var lr = route.router.get('liveRoutes');
+  var into = renderOptions.into;
+  if (into) {
+    Ember.assert("You attempted to render into '" + renderOptions.into + "' but it was not found", lr[renderOptions.into]);
+  }
+  if (!into) {
+    into = liveParentRoute(lr, route);
+  }
 
-    // Since we just replaced the top level route state, we need to
-    // kick off rendering by inserting the first view as well.
-    if (route._toplevelView) {
-      route._toplevelView.destroy();
-    }
-
-    var view = route._toplevelView = viewBuilder();
+  if (!into) {
+    // We have no live parent route, we are the top level.
+    var view = route._toplevelView = viewBuilder({ topLevel: true });
     if (view) {
       view.set('_outletProps', {
         stream : new KeyStream(route.router, 'liveRoutes').get(myState.name)
       });
+      lr = {};
+      lr[myState.name] = myState;
+      route.router.set('liveRoutes', lr);
       var instance = route.container.lookup('-application-instance:main');
       instance.didCreateRootView(view);
     }
   } else {
     lr = route.router.get('liveRoutes');
-    var outlets = lr[renderOptions.into].outlets;
+    var outlets = lr[into].outlets;
     var outlet = renderOptions.outlet;
     if (outlets[outlet]) {
       prune(lr, outlets[outlet].name);

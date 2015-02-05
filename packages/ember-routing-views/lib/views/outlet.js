@@ -17,10 +17,11 @@ export var OutletView = ContainerView.extend(_Metamorph, {
   _updateOutlet: function() {
     var viewBuilder = read(this._outletViewStream);
     var view = viewBuilder && viewBuilder();
+    var length = this.get('length');
     if (view) {
-      this.replace(0, 1, [view]);
+      this.replace(0, length, [view]);
     } else {
-      this.replace(0, 1 , []);
+      this.replace(0, length , []);
     }
   },
   willDestroy: function() {

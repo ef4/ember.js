@@ -2054,16 +2054,6 @@ function appendLiveRoute(route, renderOptions, viewBuilder) {
     }
     set(outlets, outlet, myState);
     lr[myState.name] = myState;
-
-    // FIXME: This still needs a home, but now it's not necessarily
-    // synchronous with us here:
-    //
-    // Notify the application instance that we have created the root-most
-    // view. It is the responsibility of the instance to tell the root view
-    // how to render, typically by appending it to the application's
-    // `rootElement`.
-    // var instance = route.container.lookup('-application-instance:main');
-    // instance.didCreateRootView(view);
   }
 }
 

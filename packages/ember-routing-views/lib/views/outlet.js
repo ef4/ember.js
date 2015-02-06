@@ -71,8 +71,10 @@ export var OutletView = ContainerView.extend(_Metamorph, {
   },
 
   _buildView: function(state) {
-    var LOG_VIEW_LOOKUPS = get(this, 'namespace.LOG_VIEW_LOOKUPS');
-    return buildView(this.container, LOG_VIEW_LOOKUPS, state.renderOptions, this._isTopLevel);
+    if (state) {
+      var LOG_VIEW_LOOKUPS = get(this, 'namespace.LOG_VIEW_LOOKUPS');
+      return buildView(this.container, LOG_VIEW_LOOKUPS, state.renderOptions, this._isTopLevel);
+    }
   }
 });
 
@@ -114,16 +116,12 @@ function sameRouteState(a, b) {
   if (!a || !b) {
     return false;
   }
+  a = a.renderOptions;
+  b = b.renderOptions;
   for (var key in a) {
     if (a.hasOwnProperty(key)) {
-      if (key === 'controller') {
-        if (a[key] !== b[key] && get(a[key], 'model') !== get(b[key], 'model')) {
-          return false;
-        }
-      } else {
-        if (a[key] !== b[key]) {
-          return false;
-        }
+      if (a[key] !== b[key]) {
+        return false;
       }
     }
   }

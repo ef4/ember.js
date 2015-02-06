@@ -1969,6 +1969,7 @@ function buildRenderOptions(route, namePassed, isDefaultRender, name, options) {
 //   view.connectOutlet and disconnect
 //   parentTemplate
 //   lastRenderedTemplate
+//   View.outlets && View._outlets
 
 
 function findLiveRoute(liveRoutes, name) {

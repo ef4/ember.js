@@ -1845,16 +1845,29 @@ var Route = EmberObject.extend(ActionHandler, Evented, {
     @param {Object|String} options the options hash or outlet name
   */
   disconnectOutlet: function(options) {
+    var outletName;
+    var parentView;
     if (!options || typeof options === "string") {
-      var outletName = options;
-      options = {};
-      options.outlet = outletName;
+      outletName = options;
+    } else {
+      outletName = options.outlet;
+      parentView = options.parentView;
     }
-    options.parentView = options.parentView ? options.parentView.replace(/\//g, '.') : parentTemplate(this);
-    options.outlet = options.outlet || 'main';
 
-    var parentView = this.router._lookupActiveView(options.parentView);
-    if (parentView) { parentView.disconnectOutlet(options.outlet); }
+    parentView = parentView && parentView.replace(/\//g, '.');
+    if (parentView === parentRoute(this).routeName) {
+      parentView = undefined;
+    }
+    outletName = outletName || 'main';
+
+    for (var i = 0; i < this.connections.length; i++) {
+      var connection = this.connections[i];
+      if (connection.outlet === outletName && connection.into === parentView) {
+        this.connections.splice(i, 1);
+        run.once(this.router, '_setOutlets');
+        return;
+      }
+    }
   },
 
   willDestroy: function() {
@@ -1893,19 +1906,6 @@ function handlerInfoFor(route, handlerInfos, _offset) {
   for (var i=0, l=handlerInfos.length; i<l; i++) {
     current = handlerInfos[i].handler;
     if (current === route) { return handlerInfos[i+offset]; }
-  }
-}
-
-function parentTemplate(route) {
-  var parent = parentRoute(route);
-  var template;
-
-  if (!parent) { return; }
-
-  if (template = parent.lastRenderedTemplate) {
-    return template;
-  } else {
-    return parentTemplate(parent);
   }
 }
 

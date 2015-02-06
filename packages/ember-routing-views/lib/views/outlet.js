@@ -117,11 +117,11 @@ function sameRouteState(a, b) {
   for (var key in a) {
     if (a.hasOwnProperty(key)) {
       if (key === 'controller') {
-        if (a[key] !== b['key'] && get(a[key], 'model') !== get(b[key], 'model')) {
+        if (a[key] !== b[key] && get(a[key], 'model') !== get(b[key], 'model')) {
           return false;
         }
       } else {
-        if (a[key] !== b['key']) {
+        if (a[key] !== b[key]) {
           return false;
         }
       }

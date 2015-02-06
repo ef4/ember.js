@@ -1868,6 +1868,7 @@ var Route = EmberObject.extend(ActionHandler, Evented, {
   */
   teardownViews: function() {
     this.connections = [];
+    run.once(this.router, '_setOutlets');
   }
 });
 

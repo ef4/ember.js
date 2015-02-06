@@ -11,7 +11,7 @@ export var CoreOutletView = ContainerView.extend({
   init: function() {
     this._super();
     this._childOutlets = [];
-    this._lastState = null;
+    this._outletState = null;
   },
 
   _isOutlet: true,
@@ -28,8 +28,8 @@ export var CoreOutletView = ContainerView.extend({
     var parent = this._parentOutlet();
     if (parent) {
       parent._childOutlets.push(this);
-      if (parent._lastState) {
-        this.setOutletState(parent._lastState.outlets[this._outletName]);
+      if (parent._outletState) {
+        this.setOutletState(parent._outletState.outlets[this._outletName]);
       }
     }
   }),
@@ -47,8 +47,8 @@ export var CoreOutletView = ContainerView.extend({
     while (state && emptyRouteState(state)) {
       state = state.outlets.main;
     }
-    var different = !sameRouteState(this._lastState, state);
-    this._lastState = state;
+    var different = !sameRouteState(this._outletState, state);
+    this._outletState = state;
     return different;
   },
 
@@ -57,10 +57,10 @@ export var CoreOutletView = ContainerView.extend({
       var children = this._childOutlets;
       for (var i = 0 ; i < children.length; i++) {
         var child = children[i];
-        child.setOutletState(this._lastState.outlets[child._outletName]);
+        child.setOutletState(this._outletState && this._outletState.outlets[child._outletName]);
       }
     } else {
-      var view = this._buildView(this._lastState);
+      var view = this._buildView(this._outletState);
       var length = get(this, 'length');
       if (view) {
         this.replace(0, length, [view]);

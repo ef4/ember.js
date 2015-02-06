@@ -1984,10 +1984,6 @@ function buildRenderOptions(route, namePassed, isDefaultRender, name, options) {
   return renderOptions;
 }
 
-// Chopping block:
-//   router._lookupActiveView and friends
-
-
 function getFullQueryParams(router, state) {
   if (state.fullQueryParams) { return state.fullQueryParams; }
 

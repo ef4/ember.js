@@ -41,7 +41,14 @@ export var OutletView = ContainerView.extend(_Metamorph, {
     this._super();
   },
 
+
+  // Next, need to break viewBuilder down so states we can compare
+  // state and so we can detect states with no view of their own so we
+  // can recurse down.
   _diffState: function(state) {
+    // recurse down through `state` until we find a non-empty
+    // part. That becomes our own new state. We diff that with our
+    // last state.
     var different = !this._lastState || this._lastState.viewBuilder !== state.viewBuilder;
     this._lastState = state;
     return different;

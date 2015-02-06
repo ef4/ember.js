@@ -1808,9 +1808,7 @@ var Route = EmberObject.extend(ActionHandler, Evented, {
 
     var self = this;
     var hadRenderArguments = !(arguments.length === 0 || Ember.isEmpty(arguments[0]));
-    var viewBuilder = function(opts) { return buildView(self, options, namePassed, name, renderOptions, templateName, hadRenderArguments, (opts && opts.topLevel)); };
-    if (renderOptions.outlet === 'main') { this.lastRenderedTemplate = name; }
-    //appendView(this, view, renderOptions);
+    var viewBuilder = function(opts) { return buildView(self, name, renderOptions, templateName, hadRenderArguments, (opts && opts.topLevel)); };
     appendLiveRoute(this, renderOptions, viewBuilder);
   },
 
@@ -1880,7 +1878,6 @@ var Route = EmberObject.extend(ActionHandler, Evented, {
     @method teardownViews
   */
   teardownViews: function() {
-    delete this.lastRenderedTemplate;
   }
 });
 
@@ -1946,7 +1943,8 @@ function buildRenderOptions(route, namePassed, name, options) {
     into: options && options.into && options.into.replace(/\//g, '.'),
     outlet: (options && options.outlet) || 'main',
     name: name,
-    controller: controller
+    controller: controller,
+    viewName: options && options.view || namePassed && name || route.viewName || name
   };
 
   Ember.assert("An outlet ("+renderOptions.outlet+") was specified but was not found.", renderOptions.outlet === 'main' || renderOptions.into);
@@ -1954,11 +1952,10 @@ function buildRenderOptions(route, namePassed, name, options) {
   return renderOptions;
 }
 
-function buildView(route, options, namePassed, name, renderOptions, templateName, hadRenderArguments, isTopLevel) {
+function buildView(route, name, renderOptions, templateName, hadRenderArguments, isTopLevel) {
   var LOG_VIEW_LOOKUPS = get(route.router, 'namespace.LOG_VIEW_LOOKUPS');
-  var viewName = options && options.view || namePassed && name || route.viewName || name;
   var view, template;
-  var ViewClass = route.container.lookupFactory('view:' + viewName);
+  var ViewClass = route.container.lookupFactory('view:' + renderOptions.viewName);
   if (ViewClass) {
     view = setupView(ViewClass, renderOptions);
     if (!get(view, 'template')) {

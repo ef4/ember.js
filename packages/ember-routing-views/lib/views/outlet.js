@@ -29,7 +29,7 @@ export var OutletView = ContainerView.extend(_Metamorph, {
     if (parent) {
       parent._childOutlets.push(this);
       if (parent._lastState) {
-        this._setOutletState(parent._lastState.outlets[this._outletName]);
+        this.setOutletState(parent._lastState.outlets[this._outletName]);
       }
     }
   }),
@@ -52,12 +52,12 @@ export var OutletView = ContainerView.extend(_Metamorph, {
     return different;
   },
 
-  _setOutletState: function(state) {
+  setOutletState: function(state) {
     if (!this._diffState(state)) {
       var children = this._childOutlets;
       for (var i = 0 ; i < children.length; i++) {
         var child = children[i];
-        child._setOutletState(this._lastState.outlets[child._outletName]);
+        child.setOutletState(this._lastState.outlets[child._outletName]);
       }
     } else {
       var view = this._buildView(this._lastState);

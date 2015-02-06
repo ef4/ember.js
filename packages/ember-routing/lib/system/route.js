@@ -1795,10 +1795,9 @@ var Route = EmberObject.extend(ActionHandler, Evented, {
     }
 
     var renderOptions = buildRenderOptions(this, namePassed, name, options);
-
     var self = this;
     var hadRenderArguments = !(arguments.length === 0 || Ember.isEmpty(arguments[0]));
-    var viewBuilder = function(opts) { return buildView(self, renderOptions, hadRenderArguments, (opts && opts.topLevel)); };
+    var viewBuilder = function() { return buildView(self, renderOptions, hadRenderArguments); };
     appendLiveRoute(this, renderOptions, viewBuilder);
   },
 
@@ -1952,7 +1951,7 @@ function buildRenderOptions(route, namePassed, name, options) {
   return renderOptions;
 }
 
-function buildView(route, renderOptions, hadRenderArguments, isTopLevel) {
+function buildView(route, renderOptions, hadRenderArguments) {
   var LOG_VIEW_LOOKUPS = get(route.router, 'namespace.LOG_VIEW_LOOKUPS');
   var view, template;
   var ViewClass = route.container.lookupFactory('view:' + renderOptions.viewName);
@@ -1973,6 +1972,7 @@ function buildView(route, renderOptions, hadRenderArguments, isTopLevel) {
       }
       return;
     }
+    var isTopLevel = false; // FIXME
     var defaultView = isTopLevel ? 'view:default' : 'view:toplevel';
     ViewClass = route.container.lookupFactory(defaultView);
     view = setupView(ViewClass, renderOptions);

@@ -1001,24 +1001,22 @@ function findLiveRoute(liveRoutes, name) {
 }
 
 function appendLiveRoute(liveRoutes, route, parentRoute, renderOptions) {
+  var targetName;
+  var target;
   var myState = {
     renderedBy: route,
     name: renderOptions.name,
     renderOptions: renderOptions,
     outlets: Object.create(null)
   };
-  var target;
-
   if (!parentRoute) {
     liveRoutes = myState;
   }
-
-  if (renderOptions.into) {
-    target = findLiveRoute(liveRoutes, renderOptions.into);
-    Ember.assert("You attempted to render into '" + renderOptions.into + "' but it was not found", target);
-    set(target.outlets, renderOptions.outlet, myState);
-  } else if (parentRoute) {
-    target = findLiveRoute(liveRoutes, parentRoute.routeName);
+  targetName = renderOptions.into || (parentRoute && parentRoute.routeName);
+  if (targetName) {
+    target = findLiveRoute(liveRoutes, renderOptions.into || parentRoute.routeName);
+  }
+  if (target) {
     set(target.outlets, renderOptions.outlet, myState);
   }
   return liveRoutes;

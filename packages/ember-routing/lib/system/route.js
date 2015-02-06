@@ -1916,6 +1916,8 @@ function buildRenderOptions(route, namePassed, isDefaultRender, name, options) {
   var ViewClass;
   var template;
   var LOG_VIEW_LOOKUPS = get(route.router, 'namespace.LOG_VIEW_LOOKUPS');
+  var into = options && options.into && options.into.replace(/\//g, '.');
+  var outlet = (options && options.outlet) || 'main';
 
   if (name) {
     name = name.replace(/\//g, '.');
@@ -1955,16 +1957,29 @@ function buildRenderOptions(route, namePassed, isDefaultRender, name, options) {
     }
   }
 
+  Ember.assert("An outlet ("+outlet+") was specified but was not found.", outlet === 'main' || into);
+
+  Ember.assert(
+    "You attempted to render into '" + into + "' but it was not found",
+    !into || Ember.A(route.router.router.state.handlerInfos).any(function(info) {
+      return Ember.A(info.handler.connections || []).any(function(conn) {
+        return conn.name === into;
+      });
+    })
+  );
+
+  if (into && into === parentRoute(route).routeName) {
+    into = undefined;
+  }
+
   var renderOptions = {
-    into: options && options.into && options.into.replace(/\//g, '.'),
-    outlet: (options && options.outlet) || 'main',
+    into: into,
+    outlet: outlet,
     name: name,
     controller: controller,
     ViewClass: ViewClass,
     template: template
   };
-
-  Ember.assert("An outlet ("+renderOptions.outlet+") was specified but was not found.", renderOptions.outlet === 'main' || renderOptions.into);
 
   return renderOptions;
 }

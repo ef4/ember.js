@@ -2544,6 +2544,22 @@ QUnit.test("Route should tear down multiple outlets", function() {
 });
 
 
+QUnit.test("Route will assert if you try to explicitly render {into: ...} a missing template", function () {
+  Router.map(function() {
+    this.route("home", { path: "/" });
+  });
+
+  App.HomeRoute = Ember.Route.extend({
+    renderTemplate: function() {
+      this.render({ into: 'nonexistent' });
+    }
+  });
+
+  expectAssertion(function() {
+    bootApplication();
+  }, "You attempted to render into 'nonexistent' but it was not found");
+});
+
 QUnit.test("Route supports clearing outlet explicitly", function() {
   Ember.TEMPLATES.application = compile("{{outlet}}{{outlet 'modal'}}");
   Ember.TEMPLATES.posts = compile("{{outlet}}");

@@ -13,7 +13,7 @@ import { registerHelper } from "ember-htmlbars/helpers";
 import helpers from "ember-htmlbars/helpers";
 import compile from "ember-template-compiler/system/compile";
 
-import EmberView from "ember-routing/ext/view";
+import EmberView from "ember-views/views/view";
 import jQuery from "ember-views/system/jquery";
 import ActionManager from "ember-views/system/action_manager";
 

@@ -3,7 +3,7 @@ import run from "ember-metal/run_loop";
 
 import Namespace from "ember-runtime/system/namespace";
 
-import EmberView from "ember-routing/ext/view";
+import EmberView from "ember-views/views/view";
 import jQuery from "ember-views/system/jquery";
 
 import { outletHelper } from "ember-routing-htmlbars/helpers/outlet";

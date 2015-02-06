@@ -1986,10 +1986,6 @@ function buildRenderOptions(route, namePassed, isDefaultRender, name, options) {
 
 // Chopping block:
 //   router._lookupActiveView and friends
-//   view.connectOutlet and disconnect
-//   parentTemplate
-//   lastRenderedTemplate
-//   View.outlets && View._outlets
 
 
 function getFullQueryParams(router, state) {

@@ -1013,6 +1013,7 @@ Application.reopenClass({
     registry.register('event_dispatcher:main', EventDispatcher);
 
     registry.injection('router:main', 'namespace', 'application:main');
+    registry.injection('view:outlet', 'namespace', 'application:main');
 
     registry.register('location:auto', AutoLocation);
     registry.register('location:hash', HashLocation);

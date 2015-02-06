@@ -1785,6 +1785,7 @@ var Route = EmberObject.extend(ActionHandler, Evented, {
     Ember.assert("The name in the given arguments is undefined", arguments.length > 0 ? !isNone(arguments[0]) : true);
 
     var namePassed = typeof _name === 'string' && !!_name;
+    var isDefaultRender = arguments.length === 0 || Ember.isEmpty(arguments[0]);
     var name;
 
     if (typeof _name === 'object' && !options) {
@@ -1794,11 +1795,8 @@ var Route = EmberObject.extend(ActionHandler, Evented, {
       name = _name;
     }
 
-    var renderOptions = buildRenderOptions(this, namePassed, name, options);
-    var self = this;
-    var hadRenderArguments = !(arguments.length === 0 || Ember.isEmpty(arguments[0]));
-    var viewBuilder = function() { return buildView(self, renderOptions, hadRenderArguments); };
-    appendLiveRoute(this, renderOptions, viewBuilder);
+    var renderOptions = buildRenderOptions(this, namePassed, isDefaultRender, name, options);
+    appendLiveRoute(this, renderOptions);
   },
 
   /**
@@ -1905,7 +1903,7 @@ function parentTemplate(route) {
   }
 }
 
-function buildRenderOptions(route, namePassed, name, options) {
+function buildRenderOptions(route, namePassed, isDefaultRender, name, options) {
   var controller = options && options.controller;
   var templateName;
 
@@ -1943,55 +1941,13 @@ function buildRenderOptions(route, namePassed, name, options) {
     name: name,
     controller: controller,
     viewName: options && options.view || namePassed && name || route.viewName || name,
-    templateName: templateName
+    templateName: templateName,
+    isDefaultRender: isDefaultRender
   };
 
   Ember.assert("An outlet ("+renderOptions.outlet+") was specified but was not found.", renderOptions.outlet === 'main' || renderOptions.into);
 
   return renderOptions;
-}
-
-function buildView(route, renderOptions, hadRenderArguments) {
-  var LOG_VIEW_LOOKUPS = get(route.router, 'namespace.LOG_VIEW_LOOKUPS');
-  var view, template;
-  var ViewClass = route.container.lookupFactory('view:' + renderOptions.viewName);
-  if (ViewClass) {
-    view = setupView(ViewClass, renderOptions);
-    if (!get(view, 'template')) {
-      view.set('template', route.container.lookup('template:' + renderOptions.templateName));
-    }
-    if (LOG_VIEW_LOOKUPS) {
-      Ember.Logger.info("Rendering " + renderOptions.name + " with " + view, { fullName: 'view:' + renderOptions.name });
-    }
-  } else {
-    template = route.container.lookup('template:' + renderOptions.templateName);
-    if (!template) {
-      Ember.assert("Could not find \"" + renderOptions.name + "\" template or view.", !hadRenderArguments);
-      if (LOG_VIEW_LOOKUPS) {
-        Ember.Logger.info("Could not find \"" + renderOptions.name + "\" template or view. Nothing will be rendered", { fullName: 'template:' + renderOptions.name });
-      }
-      return;
-    }
-    var isTopLevel = false; // FIXME
-    var defaultView = isTopLevel ? 'view:default' : 'view:toplevel';
-    ViewClass = route.container.lookupFactory(defaultView);
-    view = setupView(ViewClass, renderOptions);
-    if (!get(view, 'template')) {
-      view.set('template', template);
-    }
-    if (LOG_VIEW_LOOKUPS) {
-      Ember.Logger.info("Rendering " + renderOptions.name + " with default view " + view, { fullName: 'view:' + renderOptions.name });
-    }
-  }
-  return view;
-}
-
-function setupView(ViewClass, options) {
-  return ViewClass.create({
-    _debugTemplateName: options.name,
-    renderedName: options.name,
-    controller: options.controller
-  });
 }
 
 // Chopping block:
@@ -2015,12 +1971,11 @@ function findLiveRoute(liveRoutes, name) {
   }
 }
 
-function appendLiveRoute(route, renderOptions, viewBuilder) {
+function appendLiveRoute(route, renderOptions) {
   var myState = {
     renderedBy: route,
     name: renderOptions.name,
     renderOptions: renderOptions,
-    viewBuilder: viewBuilder,
     outlets: Object.create(null)
   };
   var parent = parentRoute(route);

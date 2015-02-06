@@ -1797,6 +1797,7 @@ var Route = EmberObject.extend(ActionHandler, Evented, {
 
     var renderOptions = buildRenderOptions(this, namePassed, isDefaultRender, name, options);
     appendLiveRoute(this, renderOptions);
+    run.once(this.router, '_setOutlets');
   },
 
   /**

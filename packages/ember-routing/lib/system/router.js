@@ -198,7 +198,9 @@ var EmberRouter = EmberObject.extend(Evented, {
   },
 
   _setOutlets: function() {
-    this._toplevelView.setOutletState(this.liveRoutes);
+    if (this._toplevelView) {
+      this._toplevelView.setOutletState(this.liveRoutes);
+    }
   },
 
   /**

@@ -1866,6 +1866,11 @@ var Route = EmberObject.extend(ActionHandler, Evented, {
     @method teardownViews
   */
   teardownViews: function() {
+    var self = this;
+    this.router.liveRoutes = pruneLiveRoutes(this.router.liveRoutes, function(state) {
+      return state.renderedBy === self;
+    });
+    run.once(this.router, '_setOutlets');
   }
 });
 
@@ -1984,6 +1989,27 @@ function findLiveRoute(liveRoutes, name) {
       stack.push(outlets[outletName]);
     }
   }
+}
+
+// Removes liveRoutes that match the predicate. Returns the resulting
+// tree, or undefined if there's nothing left.
+function pruneLiveRoutes(liveRoutes, predicate) {
+  if (!liveRoutes || predicate(liveRoutes)) {
+    return;
+  }
+  var stack = [liveRoutes];
+  while (stack.length > 0) {
+    var test = stack.shift();
+    var outlets = test.outlets;
+    for (var outletName in outlets) {
+      if (predicate(outlets[outletName])) {
+        delete outlets[outletName];
+      } else {
+        stack.push(outlets[outletName]);
+      }
+    }
+  }
+  return liveRoutes;
 }
 
 function appendLiveRoute(route, renderOptions) {

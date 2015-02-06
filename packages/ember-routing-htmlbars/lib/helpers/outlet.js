@@ -99,7 +99,7 @@ export function outletHelper(params, hash, options, env) {
     );
   }
 
-  viewClass = viewName ? this.container.lookupFactory(viewFullName) : hash.viewClass || OutletView;
+  viewClass = viewName ? this.container.lookupFactory(viewFullName) : hash.viewClass || this.container.lookupFactory('view:outlet');
   hash._outletName = property;
   options.helperName = options.helperName || 'outlet';
   return env.helpers.view.helperFunction.call(this, [viewClass], hash, options, env);

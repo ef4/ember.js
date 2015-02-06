@@ -1906,6 +1906,10 @@ function parentTemplate(route) {
 function buildRenderOptions(route, namePassed, isDefaultRender, name, options) {
   var controller = options && options.controller;
   var templateName;
+  var viewName;
+  var ViewClass;
+  var template;
+  var LOG_VIEW_LOOKUPS = get(route.router, 'namespace.LOG_VIEW_LOOKUPS');
 
   if (name) {
     name = name.replace(/\//g, '.');
@@ -1935,14 +1939,23 @@ function buildRenderOptions(route, namePassed, isDefaultRender, name, options) {
     controller.set('model', options.model);
   }
 
+  viewName = options && options.view || namePassed && name || route.viewName || name;
+  ViewClass = route.container.lookupFactory('view:' + viewName);
+  template = route.container.lookup('template:' + templateName);
+  if (!ViewClass && !template) {
+    Ember.assert("Could not find \"" + name + "\" template or view.", isDefaultRender);
+    if (LOG_VIEW_LOOKUPS) {
+      Ember.Logger.info("Could not find \"" + name + "\" template or view. Nothing will be rendered", { fullName: 'template:' + name });
+    }
+  }
+  
   var renderOptions = {
     into: options && options.into && options.into.replace(/\//g, '.'),
     outlet: (options && options.outlet) || 'main',
     name: name,
     controller: controller,
-    viewName: options && options.view || namePassed && name || route.viewName || name,
-    templateName: templateName,
-    isDefaultRender: isDefaultRender
+    ViewClass: ViewClass,
+    template: template
   };
 
   Ember.assert("An outlet ("+renderOptions.outlet+") was specified but was not found.", renderOptions.outlet === 'main' || renderOptions.into);

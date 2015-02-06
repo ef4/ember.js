@@ -44,23 +44,23 @@ export var OutletView = ContainerView.extend(_Metamorph, {
 
 
   _diffState: function(state) {
-    // TODO: recurse down through `state` until we find a non-empty
-    // part. That becomes our own new state. We diff that with our
-    // last state.
+    while (state && emptyRouteState(state)) {
+      state = state.outlets.main;
+    }
     var different = !sameRouteState(this._lastState, state);
     this._lastState = state;
     return different;
   },
-  
+
   _setOutletState: function(state) {
     if (!this._diffState(state)) {
       var children = this._childOutlets;
       for (var i = 0 ; i < children.length; i++) {
         var child = children[i];
-        child._setOutletState(state.outlets[child._outletName]);
+        child._setOutletState(this._lastState.outlets[child._outletName]);
       }
     } else {
-      var view = this._buildView(state);
+      var view = this._buildView(this._lastState);
       var length = get(this, 'length');
       if (view) {
         this.replace(0, length, [view]);
@@ -72,50 +72,39 @@ export var OutletView = ContainerView.extend(_Metamorph, {
 
   _buildView: function(state) {
     var LOG_VIEW_LOOKUPS = get(this, 'namespace.LOG_VIEW_LOOKUPS');
-    return buildView(this.container, LOG_VIEW_LOOKUPS, state.renderOptions);
-  },
+    return buildView(this.container, LOG_VIEW_LOOKUPS, state.renderOptions, this._isTopLevel);
+  }
 });
 
-function buildView(container, LOG_VIEW_LOOKUPS, renderOptions) {
-  var view, template;
-  var ViewClass = container.lookupFactory('view:' + renderOptions.viewName);
-  if (ViewClass) {
-    view = setupView(ViewClass, renderOptions);
-    if (!get(view, 'template')) {
-      view.set('template', container.lookup('template:' + renderOptions.templateName));
-    }
-    if (LOG_VIEW_LOOKUPS) {
-      Ember.Logger.info("Rendering " + renderOptions.name + " with " + view, { fullName: 'view:' + renderOptions.name });
-    }
-  } else {
-    template = container.lookup('template:' + renderOptions.templateName);
-    if (!template) {
-      Ember.assert("Could not find \"" + renderOptions.name + "\" template or view.", renderOptions.isDefaultRender);
-      if (LOG_VIEW_LOOKUPS) {
-        Ember.Logger.info("Could not find \"" + renderOptions.name + "\" template or view. Nothing will be rendered", { fullName: 'template:' + renderOptions.name });
-      }
-      return;
-    }
-    var isTopLevel = false; // FIXME
-    var defaultView = isTopLevel ? 'view:default' : 'view:toplevel';
-    ViewClass = container.lookupFactory(defaultView);
-    view = setupView(ViewClass, renderOptions);
-    if (!get(view, 'template')) {
-      view.set('template', template);
-    }
-    if (LOG_VIEW_LOOKUPS) {
-      Ember.Logger.info("Rendering " + renderOptions.name + " with default view " + view, { fullName: 'view:' + renderOptions.name });
-    }
+function buildView(container, LOG_VIEW_LOOKUPS, renderOptions, isTopLevel) {
+  var view;
+  var ViewClass = renderOptions.ViewClass;
+  var isDefaultView = false;
+  
+  if (!ViewClass) {
+    isDefaultView = true;
+    ViewClass = container.lookupFactory(isTopLevel ? 'view:toplevel' : 'view:default');
   }
+  
+  view = ViewClass.create({
+    _debugTemplateName: renderOptions.name,
+    renderedName: renderOptions.name,
+    controller: renderOptions.controller
+  });
+  
+  if (!get(view, 'template')) {
+    view.set('template', renderOptions.template);
+  }
+  
+  if (LOG_VIEW_LOOKUPS) {
+    Ember.Logger.info("Rendering " + renderOptions.name + " with " + (renderOptions.isDefaultView ? "default view " : "") + view, { fullName: 'view:' + renderOptions.name });
+  }
+  
   return view;
 }
 
-function setupView(ViewClass, options) {
-  return ViewClass.create({
-    _debugTemplateName: options.name,
-    renderedName: options.name,
-    controller: options.controller
-  });
+function emptyRouteState(state) {
+  return !state.renderOptions.ViewClass && !state.renderOptions.template;
 }
 
 function sameRouteState(a, b) {

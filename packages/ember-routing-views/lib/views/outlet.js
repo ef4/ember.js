@@ -23,7 +23,7 @@ export var OutletView = ContainerView.extend(_Metamorph, {
     }
     return parent;
   },
-  
+
   _linkParent: Ember.on('didInsertElement', function() {
     var parent = this._parentOutlet();
     if (parent) {
@@ -80,26 +80,26 @@ function buildView(container, LOG_VIEW_LOOKUPS, renderOptions, isTopLevel) {
   var view;
   var ViewClass = renderOptions.ViewClass;
   var isDefaultView = false;
-  
+
   if (!ViewClass) {
     isDefaultView = true;
     ViewClass = container.lookupFactory(isTopLevel ? 'view:toplevel' : 'view:default');
   }
-  
+
   view = ViewClass.create({
     _debugTemplateName: renderOptions.name,
     renderedName: renderOptions.name,
     controller: renderOptions.controller
   });
-  
+
   if (!get(view, 'template')) {
     view.set('template', renderOptions.template);
   }
-  
+
   if (LOG_VIEW_LOOKUPS) {
     Ember.Logger.info("Rendering " + renderOptions.name + " with " + (renderOptions.isDefaultView ? "default view " : "") + view, { fullName: 'view:' + renderOptions.name });
   }
-  
+
   return view;
 }
 

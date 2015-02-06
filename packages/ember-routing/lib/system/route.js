@@ -1948,7 +1948,7 @@ function buildRenderOptions(route, namePassed, isDefaultRender, name, options) {
       Ember.Logger.info("Could not find \"" + name + "\" template or view. Nothing will be rendered", { fullName: 'template:' + name });
     }
   }
-  
+
   var renderOptions = {
     into: options && options.into && options.into.replace(/\//g, '.'),
     outlet: (options && options.outlet) || 'main',

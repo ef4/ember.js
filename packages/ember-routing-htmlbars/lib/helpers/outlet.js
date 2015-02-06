@@ -4,7 +4,6 @@
 */
 
 import Ember from "ember-metal/core"; // assert
-import { OutletView } from "ember-routing-views/views/outlet";
 
 
 /**

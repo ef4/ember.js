@@ -193,6 +193,7 @@ var EmberRouter = EmberObject.extend(Evented, {
     var handlerInfos = this.router.currentHandlerInfos;
     var route;
     var parentRoute;
+    var defaultParentState;
     var liveRoutes = null;
 
     if (!handlerInfos) {
@@ -201,16 +202,22 @@ var EmberRouter = EmberObject.extend(Evented, {
 
     for (var i = 0; i < handlerInfos.length; i++) {
       route = handlerInfos[i].handler;
-      for (var j = 0; j < route.connections.length; j++) {
-        liveRoutes = appendLiveRoute(liveRoutes, route, parentRoute, route.connections[j]);
-      }
-      if (!route.connections.length) {
-        liveRoutes = appendLiveRoute(liveRoutes, route, parentRoute, {
+
+      var connections = (route.connections.length > 0) ? route.connections : [{
           name: route.routeName,
           outlet: 'main'
-        });
+      }];
+
+      var ownState;
+      for (var j = 0; j < connections.length; j++) {
+        var appended = appendLiveRoute(liveRoutes, route, parentRoute, defaultParentState, connections[j]);
+        liveRoutes = appended.liveRoutes;
+        if (appended.ownState.name === route.routeName) {
+          ownState = appended.ownState;
+        }
       }
       parentRoute = route;
+      defaultParentState = ownState;
     }
     if (!this._toplevelView) {
       var OutletView = this.container.lookupFactory('view:outlet');
@@ -1000,7 +1007,7 @@ function findLiveRoute(liveRoutes, name) {
   }
 }
 
-function appendLiveRoute(liveRoutes, route, parentRoute, renderOptions) {
+function appendLiveRoute(liveRoutes, route, parentRoute, defaultParentState, renderOptions) {
   var targetName;
   var target;
   var myState = {
@@ -1013,13 +1020,18 @@ function appendLiveRoute(liveRoutes, route, parentRoute, renderOptions) {
     liveRoutes = myState;
   }
   targetName = renderOptions.into || (parentRoute && parentRoute.routeName);
-  if (targetName) {
-    target = findLiveRoute(liveRoutes, renderOptions.into || parentRoute.routeName);
+  if (renderOptions.into) {
+    target = findLiveRoute(liveRoutes, renderOptions.into);
+  } else {
+    target = defaultParentState;
   }
   if (target) {
     set(target.outlets, renderOptions.outlet, myState);
   }
-  return liveRoutes;
+  return {
+    liveRoutes: liveRoutes,
+    ownState: myState
+  };
 }
 
 

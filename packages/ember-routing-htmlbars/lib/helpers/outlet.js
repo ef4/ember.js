@@ -71,7 +71,6 @@ import { OutletView } from "ember-routing-views/views/outlet";
   @return {String} HTML string
 */
 export function outletHelper(params, hash, options, env) {
-  var outletSource;
   var viewName;
   var viewClass;
   var viewFullName;
@@ -83,10 +82,6 @@ export function outletHelper(params, hash, options, env) {
 
   var property = params[0] || 'main';
 
-  outletSource = this;
-  while (!outletSource.get('_outletProps.stream')) {
-    outletSource = outletSource._parentView;
-  }
 
   // provide controller override
   viewName = hash.view;
@@ -105,12 +100,7 @@ export function outletHelper(params, hash, options, env) {
   }
 
   viewClass = viewName ? this.container.lookupFactory(viewFullName) : hash.viewClass || OutletView;
-
-  hash._outletProps = {
-    stream: outletSource._outletProps.stream.get('outlets').get(property)
-  };
-
+  hash._outletName = property;
   options.helperName = options.helperName || 'outlet';
-
   return env.helpers.view.helperFunction.call(this, [viewClass], hash, options, env);
 }

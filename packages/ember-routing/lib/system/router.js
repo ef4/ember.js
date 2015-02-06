@@ -180,6 +180,15 @@ var EmberRouter = EmberObject.extend(Evented, {
     this.notifyPropertyChange('url');
     this.set('currentState', this.targetState);
 
+
+    if (!this._toplevelView) {
+      var OutletView = this.container.lookupFactory('view:outlet');
+      this._toplevelView = OutletView.create();
+      var instance = this.container.lookup('-application-instance:main');
+      instance.didCreateRootView(this._toplevelView);
+    }
+    this._toplevelView._setOutletState(this.liveRoutes);
+
     // Put this in the runloop so url will be accurate. Seems
     // less surprising than didTransition being out of sync.
     run.once(this, this.trigger, 'didTransition');
@@ -317,6 +326,10 @@ var EmberRouter = EmberObject.extend(Evented, {
   },
 
   willDestroy: function() {
+    if (this._toplevelView) {
+      this._toplevelView.destroy();
+      this._toplevelView = null;
+    }
     this._super.apply(this, arguments);
     this.reset();
   },

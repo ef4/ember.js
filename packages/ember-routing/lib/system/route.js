@@ -24,7 +24,6 @@ import Evented from "ember-runtime/mixins/evented";
 import ActionHandler from "ember-runtime/mixins/action_handler";
 import generateController from "ember-routing/system/generate_controller";
 import { stashParamNames } from "ember-routing/utils";
-import KeyStream from "ember-views/streams/key_stream";
 
 var slice = Array.prototype.slice;
 
@@ -1881,10 +1880,6 @@ var Route = EmberObject.extend(ActionHandler, Evented, {
     @method teardownViews
   */
   teardownViews: function() {
-    if (this._toplevelView) {
-      this._toplevelView.destroy();
-      delete this._toplevelView;
-    }
     delete this.lastRenderedTemplate;
   }
 });
@@ -2008,24 +2003,17 @@ function setupView(ViewClass, options) {
 //   parentTemplate
 //   lastRenderedTemplate
 
-function prune(liveRoutes, name) {
-  var elt = liveRoutes[name];
-  if (elt) {
-    for (var outletName in elt.outlets) {
-      prune(liveRoutes, elt.outlets[outletName]);
-    }
-  }
-  delete liveRoutes[name];
-}
 
-function liveParentRoute(liveRoutes, route) {
-  if (!liveRoutes) {
-    return;
-  }
-  while ( route = parentRoute(route) ) {
-    var routeName = route.routeName;
-    if (liveRoutes[routeName]) {
-      return routeName;
+function findLiveRoute(liveRoutes, name) {
+  var stack = [liveRoutes];
+  while (stack.length > 0) {
+    var test = stack.shift();
+    if (test.name === name) {
+      return test;
+    }
+    var outlets = test.outlets;
+    for (var outletName in outlets) {
+      stack.push(outlets[outletName]);
     }
   }
 }
@@ -2036,39 +2024,25 @@ function appendLiveRoute(route, renderOptions, viewBuilder) {
     name: renderOptions.name,
     renderOptions: renderOptions,
     viewBuilder: viewBuilder,
-    outlets: {}
+    outlets: Object.create(null)
   };
-  var lr = route.router.get('liveRoutes');
-  var into = renderOptions.into;
-  if (into) {
-    Ember.assert("You attempted to render into '" + renderOptions.into + "' but it was not found", lr[renderOptions.into]);
-  }
-  if (!into) {
-    into = liveParentRoute(lr, route);
+  var parent = parentRoute(route);
+  var liveRoutes;
+  var target;
+
+  if (parent) {
+    liveRoutes = route.router.liveRoutes;
+  } else {
+    liveRoutes = route.router.liveRoutes = myState;
   }
 
-  if (!into) {
-    // We have no live parent route, we are the top level.
-    var view = route._toplevelView = viewBuilder({ topLevel: true });
-    if (view) {
-      view.set('_outletProps', {
-        stream : new KeyStream(route.router, 'liveRoutes').get(myState.name)
-      });
-      lr = {};
-      lr[myState.name] = myState;
-      route.router.set('liveRoutes', lr);
-      var instance = route.container.lookup('-application-instance:main');
-      instance.didCreateRootView(view);
-    }
-  } else {
-    lr = route.router.get('liveRoutes');
-    var outlets = lr[into].outlets;
-    var outlet = renderOptions.outlet;
-    if (outlets[outlet]) {
-      prune(lr, outlets[outlet].name);
-    }
-    set(outlets, outlet, myState);
-    lr[myState.name] = myState;
+  if (renderOptions.into) {
+    target = findLiveRoute(liveRoutes, renderOptions.into);
+    Ember.assert("You attempted to render into '" + renderOptions.into + "' but it was not found", target);
+    set(target.outlets, renderOptions.outlet, myState);
+  } else if (parent) {
+    target = findLiveRoute(liveRoutes, parent.routeName);
+    set(target.outlets, renderOptions.outlet, myState);
   }
 }
 

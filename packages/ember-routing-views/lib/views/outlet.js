@@ -71,39 +71,36 @@ export var CoreOutletView = ContainerView.extend({
   },
 
   _buildView: function(state) {
-    if (state) {
-      var LOG_VIEW_LOOKUPS = get(this, 'namespace.LOG_VIEW_LOOKUPS');
-      return buildView(this.container, LOG_VIEW_LOOKUPS, state.renderOptions, this._isTopLevel);
+    if (!state) { return; }
+
+    var LOG_VIEW_LOOKUPS = get(this, 'namespace.LOG_VIEW_LOOKUPS');
+    var view;
+    var renderOptions = state.renderOptions;
+    var ViewClass = renderOptions.ViewClass;
+    var isDefaultView = false;
+
+    if (!ViewClass) {
+      isDefaultView = true;
+      ViewClass = this.container.lookupFactory(this._isTopLevel ? 'view:toplevel' : 'view:default');
     }
+
+    view = ViewClass.create({
+      _debugTemplateName: renderOptions.name,
+      renderedName: renderOptions.name,
+      controller: renderOptions.controller
+    });
+
+    if (!get(view, 'template')) {
+      view.set('template', renderOptions.template);
+    }
+
+    if (LOG_VIEW_LOOKUPS) {
+      Ember.Logger.info("Rendering " + renderOptions.name + " with " + (renderOptions.isDefaultView ? "default view " : "") + view, { fullName: 'view:' + renderOptions.name });
+    }
+
+    return view;
   }
 });
-
-function buildView(container, LOG_VIEW_LOOKUPS, renderOptions, isTopLevel) {
-  var view;
-  var ViewClass = renderOptions.ViewClass;
-  var isDefaultView = false;
-
-  if (!ViewClass) {
-    isDefaultView = true;
-    ViewClass = container.lookupFactory(isTopLevel ? 'view:toplevel' : 'view:default');
-  }
-
-  view = ViewClass.create({
-    _debugTemplateName: renderOptions.name,
-    renderedName: renderOptions.name,
-    controller: renderOptions.controller
-  });
-
-  if (!get(view, 'template')) {
-    view.set('template', renderOptions.template);
-  }
-
-  if (LOG_VIEW_LOOKUPS) {
-    Ember.Logger.info("Rendering " + renderOptions.name + " with " + (renderOptions.isDefaultView ? "default view " : "") + view, { fullName: 'view:' + renderOptions.name });
-  }
-
-  return view;
-}
 
 function emptyRouteState(state) {
   return !state.renderOptions.ViewClass && !state.renderOptions.template;

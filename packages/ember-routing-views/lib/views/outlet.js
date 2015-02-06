@@ -7,7 +7,7 @@ import ContainerView from "ember-views/views/container_view";
 import { _Metamorph } from "ember-views/views/metamorph_view";
 import { get } from "ember-metal/property_get";
 
-export var OutletView = ContainerView.extend(_Metamorph, {
+export var CoreOutletView = ContainerView.extend({
   init: function() {
     this._super();
     this._childOutlets = [];
@@ -120,10 +120,15 @@ function sameRouteState(a, b) {
   b = b.renderOptions;
   for (var key in a) {
     if (a.hasOwnProperty(key)) {
-      if (a[key] !== b[key]) {
+      // name is only here for logging & debugging. If two different
+      // names result in otherwise identical states, they're still
+      // identical.
+      if (a[key] !== b[key] && key !== 'name') {
         return false;
       }
     }
   }
   return true;
 }
+
+export var OutletView = CoreOutletView.extend(_Metamorph);

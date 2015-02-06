@@ -427,30 +427,40 @@ QUnit.test("{{render}} helper should link child controllers to the parent contro
 });
 
 QUnit.test("{{render}} helper should be able to render a template again when it was removed", function() {
-  var template = "<h1>HI</h1>{{outlet}}";
   var controller = EmberController.extend({ container: container });
-  view = EmberView.create({
-    template: compile(template)
-  });
+  var CoreOutlet = container.lookupFactory('view:core-outlet');
+  view = CoreOutlet.create();
+  runAppend(view);
 
   Ember.TEMPLATES['home'] = compile("<p>BYE</p>");
 
-  runAppend(view);
+  var liveRoutes = {
+    renderOptions: {
+      template: compile("<h1>HI</h1>{{outlet}}")
+    },
+    outlets: {}
+  };
 
   run(function() {
-    view.connectOutlet('main', EmberView.create({
-      controller: controller.create(),
-      template: compile("<div>1{{render 'home'}}</div>")
-    }));
+    liveRoutes.outlets.main = {
+      renderOptions: {
+        controller: controller.create(),
+        template: compile("<div>1{{render 'home'}}</div>")
+      }
+    };
+    view.setOutletState(liveRoutes);
   });
 
   equal(view.$().text(), 'HI1BYE');
 
   run(function() {
-    view.connectOutlet('main', EmberView.create({
-      controller: controller.create(),
-      template: compile("<div>2{{render 'home'}}</div>")
-    }));
+    liveRoutes.outlets.main = {
+      renderOptions: {
+        controller: controller.create(),
+        template: compile("<div>2{{render 'home'}}</div>")
+      }
+    };
+    view.setOutletState(liveRoutes);
   });
 
   equal(view.$().text(), 'HI2BYE');

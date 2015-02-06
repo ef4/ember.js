@@ -168,28 +168,6 @@ QUnit.test("The Home page and the Camelot page with multiple Router.map calls", 
   equal(Ember.$('h3:contains(Hours)', '#qunit-fixture').length, 1, "The home template was rendered");
 });
 
-QUnit.test("The Homepage register as activeView", function() {
-  Router.map(function() {
-    this.route("home", { path: "/" });
-    this.route("homepage");
-  });
-
-  App.HomeRoute = Ember.Route.extend({
-  });
-
-  App.HomepageRoute = Ember.Route.extend({
-  });
-
-  bootApplication();
-
-  ok(router._lookupActiveView('home'), '`home` active view is connected');
-
-  handleURL('/homepage');
-
-  ok(router._lookupActiveView('homepage'), '`homepage` active view is connected');
-  equal(router._lookupActiveView('home'), undefined, '`home` active view is disconnected');
-});
-
 QUnit.test("The Homepage with explicit template name in renderTemplate", function() {
   Router.map(function() {
     this.route("home", { path: "/" });

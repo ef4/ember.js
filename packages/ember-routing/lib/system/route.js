@@ -2009,6 +2009,16 @@ function appendLiveRoute(route, renderOptions) {
     set(target.outlets, renderOptions.outlet, myState);
   } else if (parent) {
     target = findLiveRoute(liveRoutes, parent.routeName);
+    if (!target) {
+      // There's no entry for our parent route. This can happen if the
+      // user overrides `renderTemplate` so that it never `render`s
+      // anything.
+      appendLiveRoute(parent, {
+        name: parent.routeName,
+        outlet: 'main'
+      });
+      target = findLiveRoute(liveRoutes, parent.routeName);
+    }
     set(target.outlets, renderOptions.outlet, myState);
   }
 }

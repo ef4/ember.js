@@ -380,6 +380,7 @@ var Route = EmberObject.extend(ActionHandler, Evented, {
     @method enter
   */
   enter: function() {
+    this.connections = [];
     this.activate();
     this.trigger('activate');
   },
@@ -1796,7 +1797,7 @@ var Route = EmberObject.extend(ActionHandler, Evented, {
     }
 
     var renderOptions = buildRenderOptions(this, namePassed, isDefaultRender, name, options);
-    appendLiveRoute(this, renderOptions);
+    this.connections.push(renderOptions);
     run.once(this.router, '_setOutlets');
   },
 
@@ -1866,11 +1867,7 @@ var Route = EmberObject.extend(ActionHandler, Evented, {
     @method teardownViews
   */
   teardownViews: function() {
-    var self = this;
-    this.router.liveRoutes = pruneLiveRoutes(this.router.liveRoutes, function(state) {
-      return state.renderedBy === self;
-    });
-    run.once(this.router, '_setOutlets');
+    this.connections = [];
   }
 });
 
@@ -1976,78 +1973,6 @@ function buildRenderOptions(route, namePassed, isDefaultRender, name, options) {
 //   lastRenderedTemplate
 //   View.outlets && View._outlets
 
-
-function findLiveRoute(liveRoutes, name) {
-  var stack = [liveRoutes];
-  while (stack.length > 0) {
-    var test = stack.shift();
-    if (test.name === name) {
-      return test;
-    }
-    var outlets = test.outlets;
-    for (var outletName in outlets) {
-      stack.push(outlets[outletName]);
-    }
-  }
-}
-
-// Removes liveRoutes that match the predicate. Returns the resulting
-// tree, or undefined if there's nothing left.
-function pruneLiveRoutes(liveRoutes, predicate) {
-  if (!liveRoutes || predicate(liveRoutes)) {
-    return;
-  }
-  var stack = [liveRoutes];
-  while (stack.length > 0) {
-    var test = stack.shift();
-    var outlets = test.outlets;
-    for (var outletName in outlets) {
-      if (predicate(outlets[outletName])) {
-        delete outlets[outletName];
-      } else {
-        stack.push(outlets[outletName]);
-      }
-    }
-  }
-  return liveRoutes;
-}
-
-function appendLiveRoute(route, renderOptions) {
-  var myState = {
-    renderedBy: route,
-    name: renderOptions.name,
-    renderOptions: renderOptions,
-    outlets: Object.create(null)
-  };
-  var parent = parentRoute(route);
-  var liveRoutes;
-  var target;
-
-  if (parent) {
-    liveRoutes = route.router.liveRoutes;
-  } else {
-    liveRoutes = route.router.liveRoutes = myState;
-  }
-
-  if (renderOptions.into) {
-    target = findLiveRoute(liveRoutes, renderOptions.into);
-    Ember.assert("You attempted to render into '" + renderOptions.into + "' but it was not found", target);
-    set(target.outlets, renderOptions.outlet, myState);
-  } else if (parent) {
-    target = findLiveRoute(liveRoutes, parent.routeName);
-    if (!target) {
-      // There's no entry for our parent route. This can happen if the
-      // user overrides `renderTemplate` so that it never `render`s
-      // anything.
-      appendLiveRoute(parent, {
-        name: parent.routeName,
-        outlet: 'main'
-      });
-      target = findLiveRoute(liveRoutes, parent.routeName);
-    }
-    set(target.outlets, renderOptions.outlet, myState);
-  }
-}
 
 function getFullQueryParams(router, state) {
   if (state.fullQueryParams) { return state.fullQueryParams; }

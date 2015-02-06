@@ -198,8 +198,25 @@ var EmberRouter = EmberObject.extend(Evented, {
   },
 
   _setOutlets: function() {
+    var handlerInfos = this.router.currentHandlerInfos;
+    var route;
+    var parentRoute;
+    var liveRoutes = null;
+    for (var i = 0; i < handlerInfos.length; i++) {
+      route = handlerInfos[i].handler;
+      for (var j = 0; j < route.connections.length; j++) {
+        liveRoutes = appendLiveRoute(liveRoutes, route, parentRoute, route.connections[j]);
+      }
+      if (!route.connections.length) {
+        liveRoutes = appendLiveRoute(liveRoutes, route, parentRoute, {
+          name: route.routeName,
+          outlet: 'main'
+        });
+      }
+      parentRoute = route;
+    }
     if (this._toplevelView) {
-      this._toplevelView.setOutletState(this.liveRoutes);
+      this._toplevelView.setOutletState(liveRoutes);
     }
   },
 
@@ -967,5 +984,45 @@ function forEachQueryParam(router, targetRouteName, queryParams, callback) {
     }
   }
 }
+
+function findLiveRoute(liveRoutes, name) {
+  var stack = [liveRoutes];
+  while (stack.length > 0) {
+    var test = stack.shift();
+    if (test.name === name) {
+      return test;
+    }
+    var outlets = test.outlets;
+    for (var outletName in outlets) {
+      stack.push(outlets[outletName]);
+    }
+  }
+}
+
+function appendLiveRoute(liveRoutes, route, parentRoute, renderOptions) {
+  var myState = {
+    renderedBy: route,
+    name: renderOptions.name,
+    renderOptions: renderOptions,
+    outlets: Object.create(null)
+  };
+  var target;
+
+  if (!parentRoute) {
+    liveRoutes = myState;
+  }
+
+  if (renderOptions.into) {
+    target = findLiveRoute(liveRoutes, renderOptions.into);
+    Ember.assert("You attempted to render into '" + renderOptions.into + "' but it was not found", target);
+    set(target.outlets, renderOptions.outlet, myState);
+  } else if (parentRoute) {
+    target = findLiveRoute(liveRoutes, parentRoute.routeName);
+    set(target.outlets, renderOptions.outlet, myState);
+  }
+  return liveRoutes;
+}
+
+
 
 export default EmberRouter;

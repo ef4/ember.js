@@ -202,6 +202,11 @@ var EmberRouter = EmberObject.extend(Evented, {
     var route;
     var parentRoute;
     var liveRoutes = null;
+
+    if (!handlerInfos) {
+      return;
+    }
+
     for (var i = 0; i < handlerInfos.length; i++) {
       route = handlerInfos[i].handler;
       for (var j = 0; j < route.connections.length; j++) {

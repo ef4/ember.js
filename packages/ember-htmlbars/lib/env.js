@@ -78,6 +78,8 @@ import legacyYield from "ember-htmlbars/keywords/legacy-yield";
 import mut, { privateMut } from "ember-htmlbars/keywords/mut";
 import each from "ember-htmlbars/keywords/each";
 import readonly from "ember-htmlbars/keywords/readonly";
+import getEnv from "ember-htmlbars/keywords/getenv";
+import setEnv from "ember-htmlbars/keywords/setenv";
 
 registerKeyword('debugger', debuggerKeyword);
 registerKeyword('with', withKeyword);
@@ -97,6 +99,8 @@ registerKeyword('mut', mut);
 registerKeyword('@mut', privateMut);
 registerKeyword('each', each);
 registerKeyword('readonly', readonly);
+registerKeyword('getenv', getEnv);
+registerKeyword('setenv', setEnv);
 
 export default {
   hooks: emberHooks,

@@ -47,7 +47,12 @@ export default {
       target = read(scope.locals.controller) || read(scope.self);
     }
 
-    return { actionName, actionArgs, target };
+    var preventDefault;
+    if (typeof hash.preventDefault !== 'undefined') {
+      preventDefault = read(hash.preventDefault);
+    }
+
+    return { actionName, actionArgs, target, preventDefault };
   },
 
   isStable: function(state, env, scope, params, hash) {
@@ -62,7 +67,6 @@ export default {
       node: node,
       eventName: hash.on || 'click',
       bubbles: hash.bubbles,
-      preventDefault: hash.preventDefault,
       withKeyCode: hash.withKeyCode,
       allowedKeys: hash.allowedKeys
     });
@@ -81,7 +85,7 @@ export var ActionHelper = {};
 // that were using this undocumented API.
 ActionHelper.registeredActions = ActionManager.registeredActions;
 
-ActionHelper.registerAction = function({ actionId, node, eventName, preventDefault, bubbles, allowedKeys }) {
+ActionHelper.registerAction = function({ actionId, node, eventName, bubbles, allowedKeys }) {
   var actions = ActionManager.registeredActions[actionId];
 
   if (!actions) {
@@ -95,15 +99,15 @@ ActionHelper.registerAction = function({ actionId, node, eventName, preventDefau
         return true;
       }
 
-      if (preventDefault !== false) {
-        event.preventDefault();
-      }
+      let { target, actionName, actionArgs, preventDefault } = node.state;
 
       if (bubbles === false) {
         event.stopPropagation();
       }
 
-      let { target, actionName, actionArgs } = node.state;
+      if (preventDefault !== false) {
+        event.preventDefault();
+      }
 
       run(function runRegisteredAction() {
         if (isEnabled('ember-routing-htmlbars-improved-actions')) {

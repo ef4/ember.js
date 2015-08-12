@@ -10,7 +10,6 @@ import { get } from 'ember-metal/property_get';
 import { set } from 'ember-metal/property_set';
 import { computed } from 'ember-metal/computed';
 import { deprecatingAlias } from 'ember-metal/computed_macros';
-import { isSimpleClick } from 'ember-views/system/utils';
 import EmberComponent from 'ember-views/views/component';
 import inject from 'ember-runtime/inject';
 import 'ember-runtime/system/service'; // creates inject.service
@@ -18,11 +17,6 @@ import ControllerMixin from 'ember-runtime/mixins/controller';
 
 import linkToTemplate from 'ember-htmlbars/templates/link-to';
 linkToTemplate.meta.revision = 'Ember@VERSION_STRING_PLACEHOLDER';
-
-var linkComponentClassNameBindings = ['active', 'loading', 'disabled'];
-if (isEnabled('ember-routing-transitioning-classes')) {
-  linkComponentClassNameBindings = ['active', 'loading', 'disabled', 'transitioningIn', 'transitioningOut'];
-}
 
 /**
   `Ember.LinkComponent` renders an element whose `click` event triggers a
@@ -42,7 +36,7 @@ if (isEnabled('ember-routing-transitioning-classes')) {
 var LinkComponent = EmberComponent.extend({
   defaultLayout: linkToTemplate,
 
-  tagName: 'a',
+  tagName: '',
 
   /**
     @deprecated Use current-when instead.
@@ -142,29 +136,6 @@ var LinkComponent = EmberComponent.extend({
   replace: false,
 
   /**
-    By default the `{{link-to}}` helper will bind to the `href` and
-    `title` attributes. It's discouraged that you override these defaults,
-    however you can push onto the array if needed.
-
-    @property attributeBindings
-    @type Array | String
-    @default ['title', 'rel', 'tabindex', 'target']
-    @public
-  */
-  attributeBindings: ['href', 'title', 'rel', 'tabindex', 'target'],
-
-  /**
-    By default the `{{link-to}}` helper will bind to the `active`, `loading`, and
-    `disabled` classes. It is discouraged to override these directly.
-
-    @property classNameBindings
-    @type Array
-    @default ['active', 'loading', 'disabled']
-    @public
-  */
-  classNameBindings: linkComponentClassNameBindings,
-
-  /**
     By default the `{{link-to}}` helper responds to the `click` event. You
     can override this globally by setting this property to your custom
     event name.
@@ -191,37 +162,6 @@ var LinkComponent = EmberComponent.extend({
     @event click
     @private
   */
-
-  /**
-    An overridable method called when LinkComponent objects are instantiated.
-
-    Example:
-
-    ```javascript
-    App.MyLinkComponent = Ember.LinkComponent.extend({
-      init: function() {
-        this._super.apply(this, arguments);
-        Ember.Logger.log('Event is ' + this.get('eventName'));
-      }
-    });
-    ```
-
-    NOTE: If you do override `init` for a framework class like `Ember.View`,
-    be sure to call `this._super.apply(this, arguments)` in your
-    `init` declaration! If you don't, Ember may not have an opportunity to
-    do important setup work, and you'll see strange behavior in your
-    application.
-
-    @method init
-    @private
-  */
-  init() {
-    this._super(...arguments);
-
-    // Map desired event name to invoke function
-    var eventName = get(this, 'eventName');
-    this.on(eventName, this, this._invoke);
-  },
 
   _routing: inject.service('-routing'),
 
@@ -274,58 +214,53 @@ var LinkComponent = EmberComponent.extend({
   }),
 
   transitioningIn: computed('active', 'willBeActive', function() {
-    var willBeActive = get(this, 'willBeActive');
-    if (typeof willBeActive === 'undefined') { return false; }
+    if (isEnabled('ember-routing-transitioning-classes')) {
+      var willBeActive = get(this, 'willBeActive');
+      if (typeof willBeActive === 'undefined') { return false; }
 
-    return !get(this, 'active') && willBeActive && 'ember-transitioning-in';
+      return !get(this, 'active') && willBeActive && 'ember-transitioning-in';
+    }
   }),
 
   transitioningOut: computed('active', 'willBeActive', function() {
-    var willBeActive = get(this, 'willBeActive');
-    if (typeof willBeActive === 'undefined') { return false; }
+    if (isEnabled('ember-routing-transitioning-classes')) {
+      var willBeActive = get(this, 'willBeActive');
+      if (typeof willBeActive === 'undefined') { return false; }
 
-    return get(this, 'active') && !willBeActive && 'ember-transitioning-out';
+      return get(this, 'active') && !willBeActive && 'ember-transitioning-out';
+    }
   }),
 
-  /**
-    Event handler that invokes the link, activating the associated route.
+  actions: {
+    /**
+     Event handler that invokes the link, activating the associated route.
 
-    @private
-    @method _invoke
-    @param {Event} event
-    @private
-  */
-  _invoke(event) {
-    if (!isSimpleClick(event)) { return true; }
+     @private
+     @method _invoke
+     @param {Event} event
+     @private
+     */
+    invoke() {
+      if (get(this, '_isDisabled')) { return false; }
 
-    if (this.attrs.preventDefault !== false) {
-      var targetAttribute = this.attrs.target;
-      if (!targetAttribute || targetAttribute === '_self') {
-        event.preventDefault();
+      if (get(this, 'loading')) {
+        Ember.Logger.warn('This link-to is in an inactive loading state because at least one of its parameters presently has a null/undefined value, or the provided route name is invalid.');
+        return false;
       }
+
+      var targetAttribute2 = this.attrs.target;
+      if (targetAttribute2 && targetAttribute2 !== '_self') {
+        return false;
+      }
+
+      var routing = get(this, '_routing');
+      var targetRouteName = get(this, 'targetRouteName');
+      var models = get(this, 'models');
+      var queryParamValues = get(this, 'queryParams.values');
+      var shouldReplace = get(this, 'attrs.replace');
+
+      routing.transitionTo(targetRouteName, models, queryParamValues, shouldReplace);
     }
-
-    if (this.attrs.bubbles === false) { event.stopPropagation(); }
-
-    if (get(this, '_isDisabled')) { return false; }
-
-    if (get(this, 'loading')) {
-      Ember.Logger.warn('This link-to is in an inactive loading state because at least one of its parameters presently has a null/undefined value, or the provided route name is invalid.');
-      return false;
-    }
-
-    var targetAttribute2 = this.attrs.target;
-    if (targetAttribute2 && targetAttribute2 !== '_self') {
-      return false;
-    }
-
-    var routing = get(this, '_routing');
-    var targetRouteName = get(this, 'targetRouteName');
-    var models = get(this, 'models');
-    var queryParamValues = get(this, 'queryParams.values');
-    var shouldReplace = get(this, 'attrs.replace');
-
-    routing.transitionTo(targetRouteName, models, queryParamValues, shouldReplace);
   },
 
   queryParams: null,
@@ -334,15 +269,10 @@ var LinkComponent = EmberComponent.extend({
     Sets the element's `href` attribute to the url for
     the `LinkComponent`'s targeted route.
 
-    If the `LinkComponent`'s `tagName` is changed to a value other
-    than `a`, this property will be ignored.
-
     @property href
     @private
   */
   href: computed('models', 'targetRouteName', '_routing.currentState', function computeLinkComponentHref() {
-    if (get(this, 'tagName') !== 'a') { return; }
-
     var targetRouteName = get(this, 'targetRouteName');
     var models = get(this, 'models');
 
@@ -382,7 +312,6 @@ var LinkComponent = EmberComponent.extend({
 
   /**
     The default href value to use while a link-to is loading.
-    Only applies when tagName is 'a'
 
     @property loadingHref
     @type String
@@ -390,6 +319,11 @@ var LinkComponent = EmberComponent.extend({
     @private
   */
   loadingHref: '#',
+
+  mayPreventDefault: computed('attrs.target', function() {
+    let targetAttribute = this.attrs.target;
+    return !targetAttribute || targetAttribute === '_self';
+  }),
 
   willRender() {
     var queryParams;

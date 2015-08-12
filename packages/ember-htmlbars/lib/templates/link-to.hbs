@@ -1,1 +1,20 @@
-{{#if linkTitle}}{{#if attrs.escaped}}{{linkTitle}}{{else}}{{{linkTitle}}}{{/if}}{{else}}{{yield}}{{/if}}
+<a
+  id={{attrs.id}}
+  href={{href}}
+  title={{attrs.title}}
+  rel={{attrs.rel}}
+  tabindex={{attrs.tabindex}}
+  target={{attrs.target}}
+  class="{{attrs.class}} {{active}} {{loading}} {{disabled}}"
+  {{action "invoke" preventDefault=(unless mayPreventDefault false attrs.preventDefault) bubbles=attrs.bubbles}}
+  >
+  {{~#if linkTitle~}}
+    {{~#if attrs.escaped~}}
+      {{linkTitle}}
+    {{~else~}}
+      {{{linkTitle}}}
+    {{~/if~}}
+  {{~else~}}
+    {{yield}}
+  {{~/if~}}
+</a>

@@ -4,7 +4,6 @@
 */
 
 import Ember from 'ember-metal/core'; // FEATURES, Logger, assert
-import isEnabled from 'ember-metal/features';
 
 import { get } from 'ember-metal/property_get';
 import { set } from 'ember-metal/property_set';
@@ -214,21 +213,17 @@ var LinkComponent = EmberComponent.extend({
   }),
 
   transitioningIn: computed('active', 'willBeActive', function() {
-    if (isEnabled('ember-routing-transitioning-classes')) {
-      var willBeActive = get(this, 'willBeActive');
-      if (typeof willBeActive === 'undefined') { return false; }
+    var willBeActive = get(this, 'willBeActive');
+    if (typeof willBeActive === 'undefined') { return false; }
 
-      return !get(this, 'active') && willBeActive && 'ember-transitioning-in';
-    }
+    return !get(this, 'active') && willBeActive && 'ember-transitioning-in';
   }),
 
   transitioningOut: computed('active', 'willBeActive', function() {
-    if (isEnabled('ember-routing-transitioning-classes')) {
-      var willBeActive = get(this, 'willBeActive');
-      if (typeof willBeActive === 'undefined') { return false; }
+    var willBeActive = get(this, 'willBeActive');
+    if (typeof willBeActive === 'undefined') { return false; }
 
-      return get(this, 'active') && !willBeActive && 'ember-transitioning-out';
-    }
+    return get(this, 'active') && !willBeActive && 'ember-transitioning-out';
   }),
 
   actions: {

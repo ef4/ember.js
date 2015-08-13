@@ -5,7 +5,7 @@
   rel={{attrs.rel}}
   tabindex={{attrs.tabindex}}
   target={{attrs.target}}
-  class="{{attrs.class}} {{active}} {{loading}} {{disabled}}"
+  class="{{attrs.class}} {{if active activeClass}} {{if loading loadingClass}} {{if disabled disabledClass}} {{if transitioningIn 'ember-transitioning-in'}} {{if transitioningOut 'ember-transitioning-out'}}"
   {{action "invoke" preventDefault=(unless mayPreventDefault false attrs.preventDefault) bubbles=attrs.bubbles}}
   >
   {{~#if linkTitle~}}

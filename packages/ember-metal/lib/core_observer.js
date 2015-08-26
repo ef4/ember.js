@@ -15,10 +15,10 @@ export default function Observer(obj, path, target, method) {
     this.leaf = path.slice(leafIndex + 1);
   }
 
-  this.lastSetId = this.currentSetId();
+  this.lastChangeId = this.currentChangeId();
 }
 
-Observer.prototype.currentSetId = function() {
+Observer.prototype.currentChangeId = function() {
   let leafObj;
   if (this.stem) {
     leafObj = get(this.obj, this.stem);
@@ -26,13 +26,13 @@ Observer.prototype.currentSetId = function() {
     leafObj = this.obj;
   }
   let meta = leafObj['__ember_meta__'];
-  return meta && meta.peekSetIds(this.leaf);
+  return meta && meta.peekChangeIds(this.leaf);
 };
 
 Observer.prototype.check = function() {
-  let oldId = this.lastSetId;
-  let newId = this.currentSetId();
-  this.lastSetId = newId;
+  let oldId = this.lastChangeId;
+  let newId = this.currentChangeId();
+  this.lastChangeId = newId;
   if (oldId !== newId) {
     this.fire();
   }

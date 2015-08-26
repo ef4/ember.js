@@ -64,7 +64,7 @@ var changeCounter = 0;
 
 export function propertyDidChange2(obj, keyName) {
   let m = metaFor(obj);
-  m.writeSetIds(keyName, changeCounter++);
+  m.writeChangeIds(keyName, changeCounter++);
   scheduleCheckObservers();
 }
 
@@ -95,7 +95,7 @@ function propertyDidChange(obj, keyName) {
     return;
   }
 
-  m.writeSetIds(keyName, changeCounter++);
+  m.writeChangeIds(keyName, String(changeCounter++));
   scheduleCheckObservers();
 
   // shouldn't this mean that we're watching this key?

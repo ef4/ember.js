@@ -130,10 +130,12 @@ function ComputedProperty(config, opts) {
   }
   assert('Computed properties must receive a getter or a setter, you passed none.', !!this._getter || !!this._setter);
   this._dependentKeys = undefined;
+  this._dependentKeys2 = undefined;
   this._suspended = undefined;
   this._meta = undefined;
   this._volatile = false;
   this._dependentKeys = opts && opts.dependentKeys;
+  this._dependentKeys2 = opts && opts.dependentKeys && opts.dependentKeys.map(key => key.split('.'));
   this._readOnly =  false;
 }
 
@@ -242,6 +244,7 @@ ComputedPropertyPrototype.property = function() {
   }
 
   this._dependentKeys = args;
+  this._dependentKeys2 = args.map(key => key.split('.'));
   return this;
 };
 

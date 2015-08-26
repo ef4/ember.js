@@ -2,6 +2,7 @@ import { assert } from 'ember-metal/debug';
 import isEnabled from 'ember-metal/features';
 import { _getPath as getPath } from 'ember-metal/property_get';
 import {
+  PROPERTY_DID_CHANGE,
   propertyWillChange,
   propertyDidChange
 } from 'ember-metal/property_events';
@@ -64,10 +65,7 @@ export function set(obj, keyName, value, tolerant) {
     // `setUnknownProperty` method exists on the object
     if (isUnknown && 'function' === typeof obj.setUnknownProperty) {
       obj.setUnknownProperty(keyName, value);
-    } else {
-      if (!meta) {
-        meta = metaFor(obj);
-      }
+    } else if (meta && meta.peekWatching(keyName) > 0) {
       if (meta.proto !== obj) {
         if (isEnabled('mandatory-setter')) {
           currentValue = meta.peekValues(keyName);
@@ -92,6 +90,12 @@ export function set(obj, keyName, value, tolerant) {
         }
         propertyDidChange(obj, keyName);
       }
+    } else {
+      obj[keyName] = value;
+      if (obj[PROPERTY_DID_CHANGE]) {
+        obj[PROPERTY_DID_CHANGE](keyName);
+      }
+      propertyDidChange(obj, keyName);
     }
   }
   return value;

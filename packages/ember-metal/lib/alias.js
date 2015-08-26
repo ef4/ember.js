@@ -22,6 +22,7 @@ export function AliasedProperty(altKey) {
   this.isDescriptor = true;
   this.altKey = altKey;
   this._dependentKeys = [altKey];
+  this._dependentKeys2 = [altKey.split('.')];
 }
 
 AliasedProperty.prototype = Object.create(Descriptor.prototype);

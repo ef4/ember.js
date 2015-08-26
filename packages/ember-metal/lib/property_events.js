@@ -95,7 +95,7 @@ function propertyDidChange(obj, keyName) {
     return;
   }
 
-  m.writeChangeIds(keyName, String(changeCounter++));
+  m.writeChangeIds(keyName, changeCounter++);
   scheduleCheckObservers();
 
   // shouldn't this mean that we're watching this key?

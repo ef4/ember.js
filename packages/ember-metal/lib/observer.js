@@ -28,7 +28,6 @@ function beforeEvent(keyName) {
 }
 
 var observers = [];
-window.o = observers;
 
 /**
   @method addObserver

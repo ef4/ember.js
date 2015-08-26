@@ -1,6 +1,7 @@
 import { testBoth } from 'ember-metal/tests/props_helper';
 import CoreObserver from 'ember-metal/core_observer';
 import { computed } from 'ember-metal/computed';
+import alias from 'ember-metal/alias';
 import EmberObject from 'ember-runtime/system/object';
 
 QUnit.module('Core Observer');
@@ -97,4 +98,57 @@ testBoth('should fire for intermediate CP dependent key ', function(get, set) {
   set(obj, 'bar', 2);
   observer.check();
   equal(count, 2);
+});
+
+testBoth('should fire for alias', function(get, set) {
+  var count = 0;
+  let obj = EmberObject.extend({
+    foo: alias('bar')
+  }).create();
+
+  let observer = new CoreObserver(obj, 'foo', null, function() {
+    count++;
+  });
+
+  set(obj, 'bar', 1);
+  observer.check();
+  equal(count, 1);
+
+  set(obj, 'bar', 2);
+  observer.check();
+  equal(count, 2);
+
+  set(obj, 'foo', 3);
+  observer.check();
+  equal(count, 3);
+});
+
+testBoth('dependent key firing should not trigger re-evaluation', function(get, set) {
+  var fireCount = 0;
+  var evalCount = 0;
+  let obj = EmberObject.extend({
+    foo: computed('bar', function() {
+      evalCount++;
+      return 1;
+    })
+  }).create();
+
+  let observer = new CoreObserver(obj, 'foo', null, function() {
+    fireCount++;
+  });
+
+  set(obj, 'bar', 1);
+  observer.check();
+  equal(fireCount, 1);
+  equal(evalCount, 0);
+
+  set(obj, 'bar', 2);
+  observer.check();
+  equal(fireCount, 2);
+  equal(evalCount, 0);
+
+  set(obj, 'foo', 3);
+  observer.check();
+  equal(fireCount, 3);
+  equal(evalCount, 0);
 });

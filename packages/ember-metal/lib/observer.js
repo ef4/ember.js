@@ -53,7 +53,9 @@ function checkObservers() {
 
 export function scheduleCheckObservers() {
   if (observers.length > 0) {
-    run.scheduleOnce('actions', checkObservers);
+    run.join(function() {
+      run.scheduleOnce('actions', checkObservers);
+    });
   }
 }
 

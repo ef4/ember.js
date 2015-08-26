@@ -2,9 +2,15 @@ import { get } from 'ember-metal/property_get';
 
 export default function Observer(obj, path, target, method) {
   this.obj = obj;
-  this.target = target || obj;
-  this.method = method;
   this.path = path;
+
+  if (method == null && typeof target === 'function') {
+    this.target = obj;
+    this.method = target;
+  } else {
+    this.target = target || obj;
+    this.method = method;
+  }
 
   let links = path.split('.');
   if (links.length === 1) {
@@ -92,7 +98,7 @@ function depChangeId(obj, dep) {
 }
 
 function highestChangeId(latestChange, currentObj, currentKey) {
-  let meta = currentObj['__ember_meta__'];
+  let meta = currentObj.__ember_meta__;
   let changeId = meta && meta.peekChangeIds(currentKey);
   if (changeId !== null && (latestChange == null || changeId > latestChange)) {
     return changeId;

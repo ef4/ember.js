@@ -28,7 +28,13 @@ export function AliasedProperty(altKey) {
 AliasedProperty.prototype = Object.create(Descriptor.prototype);
 
 AliasedProperty.prototype.get = function AliasedProperty_get(obj, keyName) {
-  return get(obj, this.altKey);
+  let ret = get(obj, this.altKey);
+  let m = obj.__ember_meta__;
+  let changeId = m && m.peekChangeIds(this.altKey);
+  if (changeId != null) {
+    m.writeChangeIds(keyName, m.peekChangeIds(this.altKey));
+  }
+  return ret;
 };
 
 AliasedProperty.prototype.set = function AliasedProperty_set(obj, keyName, value) {

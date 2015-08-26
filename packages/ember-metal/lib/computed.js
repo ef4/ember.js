@@ -332,7 +332,7 @@ ComputedPropertyPrototype.didChange = function(obj, keyName) {
   @public
 */
 ComputedPropertyPrototype.get = function(obj, keyName) {
-  if (this._volatile || true) {
+  if (this._volatile) {
     return this._getter.call(obj, keyName);
   }
 

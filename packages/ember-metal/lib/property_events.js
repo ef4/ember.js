@@ -7,6 +7,8 @@ import {
 } from 'ember-metal/events';
 import ObserverSet from 'ember-metal/observer_set';
 import { symbol } from 'ember-metal/utils';
+import { meta as metaFor } from 'ember-metal/meta';
+import { scheduleCheckObservers } from 'ember-metal/observer';
 
 export let PROPERTY_DID_CHANGE = symbol('PROPERTY_DID_CHANGE');
 
@@ -58,6 +60,14 @@ function propertyWillChange(obj, keyName) {
   notifyBeforeObservers(obj, keyName);
 }
 
+var changeCounter = 0;
+
+export function propertyDidChange2(obj, keyName) {
+  let m = metaFor(obj);
+  m.writeSetIds(keyName, changeCounter++);
+  scheduleCheckObservers();
+}
+
 /**
   This function is called just after an object property has changed.
   It will notify any observers and clear caches among other things.
@@ -75,7 +85,7 @@ function propertyWillChange(obj, keyName) {
   @private
 */
 function propertyDidChange(obj, keyName) {
-  var m = obj['__ember_meta__'];
+  var m = metaFor(obj);
   var watching = (m && m.peekWatching(keyName) > 0) || keyName === 'length';
   var proto = m && m.proto;
   var possibleDesc = obj[keyName];
@@ -84,6 +94,9 @@ function propertyDidChange(obj, keyName) {
   if (proto === obj) {
     return;
   }
+
+  m.writeSetIds(keyName, changeCounter++);
+  scheduleCheckObservers();
 
   // shouldn't this mean that we're watching this key?
   if (desc && desc.didChange) {

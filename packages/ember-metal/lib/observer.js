@@ -9,6 +9,9 @@ import {
   suspendListeners,
   suspendListener
 } from 'ember-metal/events';
+import run from 'ember-metal/run_loop';
+import Observer from 'ember-metal/core_observer';
+
 /**
 @module ember-metal
 */
@@ -24,6 +27,9 @@ function beforeEvent(keyName) {
   return keyName + BEFORE_OBSERVERS;
 }
 
+var observers = [];
+window.o = observers;
+
 /**
   @method addObserver
   @for Ember
@@ -34,10 +40,22 @@ function beforeEvent(keyName) {
   @public
 */
 export function addObserver(obj, _path, target, method) {
-  addListener(obj, changeEvent(_path), target, method);
+  observers.push(new Observer(obj, _path, target, method));
   watch(obj, _path);
 
   return this;
+}
+
+function checkObservers() {
+  for (let i = 0; i < observers.length; i++) {
+    observers[i].check();
+  }
+}
+
+export function scheduleCheckObservers() {
+  if (observers.length > 0) {
+    run.scheduleOnce('actions', checkObservers);
+  }
 }
 
 export function observersFor(obj, path) {
@@ -55,8 +73,14 @@ export function observersFor(obj, path) {
 */
 export function removeObserver(obj, path, target, method) {
   unwatch(obj, path);
-  removeListener(obj, changeEvent(path), target, method);
 
+  for (let i = 0; i < observers.length; i++) {
+    let o = observers[i];
+    if (o.obj === obj && o.path === path && o.target === target && o.method === method) {
+      observers.splice(i, 1);
+      break;
+    }
+  }
   return this;
 }
 

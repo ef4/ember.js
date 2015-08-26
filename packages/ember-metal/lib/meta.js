@@ -32,6 +32,7 @@ import EmptyObject from 'ember-metal/empty_object';
 */
 let members = {
   cache: ownMap,
+  setIds: ownMap,
   watching: inheritedMap,
   mixins: inheritedMap,
   bindings: inheritedMap,
@@ -82,6 +83,15 @@ function ownMap(name, Meta) {
     return this._getOrCreateOwnMap(key);
   };
   Meta.prototype['readable' + capitalized] = function() { return this[key]; };
+  Meta.prototype['write' + capitalized] = function(subkey, value) {
+    this._getOrCreateOwnMap(key)[subkey] = value;
+  };
+  Meta.prototype['peek' + capitalized] = function(subkey) {
+    let map = this[key];
+    if (map) {
+      return map[subkey];
+    }
+  };
 }
 
 Meta.prototype._getOrCreateOwnMap = function(key) {

@@ -113,3 +113,14 @@ function dependentKeys(obj, key) {
     return possibleDesc._dependentKeys2;
   }
 }
+
+
+var changeCounter = 0;
+
+export function nextChangeId() {
+  return ++changeCounter;
+}
+
+export function lastChangeId() {
+  return changeCounter;
+}

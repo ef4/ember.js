@@ -9,6 +9,7 @@ import ObserverSet from 'ember-metal/observer_set';
 import { symbol } from 'ember-metal/utils';
 import { meta as metaFor } from 'ember-metal/meta';
 import { scheduleCheckObservers } from 'ember-metal/observer';
+import { nextChangeId } from 'ember-metal/core_observer';
 
 export let PROPERTY_DID_CHANGE = symbol('PROPERTY_DID_CHANGE');
 
@@ -60,18 +61,13 @@ function propertyWillChange(obj, keyName) {
   notifyBeforeObservers(obj, keyName);
 }
 
-var changeCounter = 0;
 
 export function propertyDidChange2(obj, keyName) {
   let m = metaFor(obj);
-  let changeId = changeCounter++
+  let changeId = nextChangeId();
   m.writeChangeIds(keyName, changeId);
   scheduleCheckObservers();
   return changeId;
-}
-
-export function lastChangeId() {
-  return changeCounter;
 }
 
 /**
@@ -101,7 +97,7 @@ function propertyDidChange(obj, keyName) {
     return;
   }
 
-  m.writeChangeIds(keyName, ++changeCounter);
+  m.writeChangeIds(keyName, nextChangeId());
   scheduleCheckObservers();
 
   // shouldn't this mean that we're watching this key?

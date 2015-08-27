@@ -10,8 +10,7 @@ import {
 } from 'ember-metal/properties';
 import {
   propertyWillChange,
-  propertyDidChange2 //,
-//  lastChangeId // TODO : use this and meta.depChangeIds to memoize _checkDeps
+  propertyDidChange2
 } from 'ember-metal/property_events';
 import {
   addDependentKeys,

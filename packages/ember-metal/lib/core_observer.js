@@ -52,17 +52,12 @@ function currentChangeId(obj, stem, leaf) {
   let currentObj = obj;
 
   if (stem != null) {
-    // Intermediate nodes necessarily need to get evaluated anyway, so
-    // we rely on their own descriptor implementations to account for
-    // their dependent keys during each `get`.
     let step = 0;
     while (currentObj && step < stem.length) {
       let currentKey = stem[step];
 
-      // If currentKey is a computed property, this also ensures that
-      // its meta changeIds reflects any upstream dependent key
-      // changes. So it's important that this step happens before we
-      // check its changeId in highestChangeId() below.
+      // FIXME: we can't do gets, even for intermediate nodes.
+      // see testId=84339f63.
       let nextObj = get(currentObj, currentKey);
 
       latestChange = highestChangeId(latestChange, currentObj, currentKey);

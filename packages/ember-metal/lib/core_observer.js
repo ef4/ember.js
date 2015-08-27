@@ -58,6 +58,9 @@ function currentChangeId(obj, stem, leaf) {
 
       // FIXME: we can't do gets, even for intermediate nodes.
       // see testId=84339f63.
+      // I think what I want is something like `weakGet` that will
+      // give you normal props and cached CPs, but not trigger new
+      // evaluations.
       let nextObj = get(currentObj, currentKey);
 
       latestChange = highestChangeId(latestChange, currentObj, currentKey);

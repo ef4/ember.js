@@ -10,14 +10,15 @@ import {
 } from 'ember-metal/properties';
 import {
   propertyWillChange,
-  propertyDidChange,
-  lastChangeId
+  propertyDidChange2 //,
+//  lastChangeId // TODO : use this and meta.depChangeIds to memoize _checkDeps
 } from 'ember-metal/property_events';
 import {
   addDependentKeys,
   removeDependentKeys
 } from 'ember-metal/dependent_keys';
 import { depChangeId } from 'ember-metal/core_observer';
+import run from 'ember-metal/run_loop';
 /**
 @module ember
 @submodule ember-metal
@@ -384,7 +385,7 @@ ComputedPropertyPrototype.get = function(obj, keyName) {
 
 ComputedPropertyPrototype._checkDeps = function(obj, keyName, meta) {
   let age = meta.peekChangeIds(keyName) || 0;
-  let deps = obj._dependentKeys2;
+  let deps = this._dependentKeys2;
   if (deps != null) {
     for (let i = 0; i < deps.length; i++) {
       let d = depChangeId(obj, deps[i]);
@@ -476,6 +477,7 @@ ComputedPropertyPrototype.volatileSet = function computedPropertyVolatileSet(obj
   return this._setter.call(obj, keyName, value);
 };
 
+// FIXME: this is dubious. I think we already get suspend now based on run.join.
 ComputedPropertyPrototype.setWithSuspend = function computedPropertySetWithSuspend(obj, keyName, value) {
   let oldSuspended = this._suspended;
   this._suspended = obj;
@@ -487,50 +489,45 @@ ComputedPropertyPrototype.setWithSuspend = function computedPropertySetWithSuspe
 };
 
 ComputedPropertyPrototype._set = function computedPropertySet(obj, keyName, value) {
-  // cache requires own meta
-  let meta           = metaFor(obj);
-  // either there is a writable cache or we need one to update
-  let cache          = meta.writableCache();
-  let hadCachedValue = false;
-  let cachedValue;
-  if (cache[keyName] !== undefined) {
-    if (cache[keyName] !== UNDEFINED) {
-      cachedValue = cache[keyName];
+  return run.join(() => {
+    // cache requires own meta
+    let meta           = metaFor(obj);
+
+    let cacheAge = meta.peekCacheAge(keyName);
+    if (cacheAge == null) { cacheAge = -1; }
+
+    let hadCachedValue = false;
+    let cachedValue;
+
+    let currentAge = this._checkDeps(obj, keyName, meta);
+    if (cacheAge >= currentAge) {
+      hadCachedValue = true;
+      cachedValue = meta.peekCache(keyName);
     }
-    hadCachedValue = true;
-  }
 
-  let ret = this._setter.call(obj, keyName, value, cachedValue);
+    let ret = this._setter.call(obj, keyName, value, cachedValue);
 
-  // allows setter to return the same value that is cached already
-  if (hadCachedValue && cachedValue === ret) {
+    if (!hadCachedValue) {
+      addDependentKeys(this, obj, keyName, meta);
+    }
+
+    // allows setter to return the same value that is cached already
+    if (hadCachedValue && cachedValue === ret) {
+      return ret;
+    }
+
+    let watched = meta.peekWatching(keyName);
+    if (watched) {
+      propertyWillChange(obj, keyName);
+    }
+
+    // FIXME: make propertyDidchange2 accept an optional meta, since
+    // we already have it.
+    meta.writeCacheAge(keyName, propertyDidChange2(obj, keyName));
+    meta.writeCache(keyName, ret);
+
     return ret;
-  }
-
-  let watched = meta.peekWatching(keyName);
-  if (watched) {
-    propertyWillChange(obj, keyName);
-  }
-
-  if (hadCachedValue) {
-    cache[keyName] = undefined;
-  }
-
-  if (!hadCachedValue) {
-    addDependentKeys(this, obj, keyName, meta);
-  }
-
-  if (ret === undefined) {
-    cache[keyName] = UNDEFINED;
-  } else {
-    cache[keyName] = ret;
-  }
-
-  if (watched) {
-    propertyDidChange(obj, keyName);
-  }
-
-  return ret;
+  });
 };
 
 /* called before property is overridden */

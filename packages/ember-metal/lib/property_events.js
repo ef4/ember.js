@@ -64,8 +64,10 @@ var changeCounter = 0;
 
 export function propertyDidChange2(obj, keyName) {
   let m = metaFor(obj);
-  m.writeChangeIds(keyName, changeCounter++);
+  let changeId = changeCounter++
+  m.writeChangeIds(keyName, changeId);
   scheduleCheckObservers();
+  return changeId;
 }
 
 export function lastChangeId() {

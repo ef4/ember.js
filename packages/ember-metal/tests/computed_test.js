@@ -707,12 +707,12 @@ testBoth('setting a watched computed property', function(get, set) {
   equal(get(obj, 'firstName'), 'Kris');
   equal(get(obj, 'lastName'), 'Selden');
 
-  equal(fullNameWillChange, 1);
-  equal(fullNameDidChange, 1);
-  equal(firstNameWillChange, 1);
-  equal(firstNameDidChange, 1);
-  equal(lastNameWillChange, 1);
-  equal(lastNameDidChange, 1);
+  equal(fullNameWillChange, 1, 'fullNameWillChange');
+  equal(fullNameDidChange, 1, 'fullNameDidChange');
+  equal(firstNameWillChange, 1, 'firstNameWillChange');
+  equal(firstNameDidChange, 1, 'firstNameDidChange');
+  equal(lastNameWillChange, 1, 'lastNameWillChange');
+  equal(lastNameDidChange, 1, 'lastNameDidChange');
 });
 
 testBoth('setting a cached computed property that modifies the value you give it', function(get, set) {

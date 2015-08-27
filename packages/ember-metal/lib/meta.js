@@ -63,6 +63,10 @@ let memberNames = Object.keys(members);
 
 function Meta(obj, parentMeta) {
   this._cache = undefined;
+  this._cacheAge = undefined;
+  this._changeIds = undefined;
+  this._depsAge = undefined;
+
   this._watching = undefined;
   this._mixins = undefined;
   this._bindings = undefined;

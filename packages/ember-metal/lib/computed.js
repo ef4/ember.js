@@ -286,23 +286,6 @@ ComputedPropertyPrototype.meta = function(meta) {
 
 // invalidate cache when CP key changes
 ComputedPropertyPrototype.didChange = function(obj, keyName) {
-  // _suspended is set via a CP.set to ensure we don't clear
-  // the cached value set by the setter
-  if (this._volatile || this._suspended === obj) {
-    return;
-  }
-
-  // don't create objects just to invalidate
-  let meta = obj.__ember_meta__;
-  if (!meta || meta.source !== obj) {
-    return;
-  }
-
-  let cache = meta.readableCache();
-  if (cache && cache[keyName] !== undefined) {
-    cache[keyName] = undefined;
-    removeDependentKeys(this, obj, keyName, meta);
-  }
 };
 
 /**

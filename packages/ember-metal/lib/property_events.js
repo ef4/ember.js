@@ -88,7 +88,6 @@ export function propertyDidChange2(obj, keyName) {
 */
 function propertyDidChange(obj, keyName) {
   var m = metaFor(obj);
-  var watching = (m && m.peekWatching(keyName) > 0) || keyName === 'length';
   var proto = m && m.proto;
   var possibleDesc = obj[keyName];
   var desc = (possibleDesc !== null && typeof possibleDesc === 'object' && possibleDesc.isDescriptor) ? possibleDesc : undefined;
@@ -109,15 +108,6 @@ function propertyDidChange(obj, keyName) {
     obj[PROPERTY_DID_CHANGE](keyName);
   }
 
-  if (!watching && keyName !== 'length') {
-    return;
-  }
-
-  if (m && m.hasDeps(keyName)) {
-    dependentKeysDidChange(obj, keyName, m);
-  }
-
-  chainsDidChange(obj, keyName, m, false);
   notifyObservers(obj, keyName);
 }
 

@@ -748,8 +748,8 @@ testBoth('setting a cached computed property that modifies the value you give it
   set(obj, 'foo', 5);
   equal(get(obj, 'plusOne'), 6);
 
-  equal(plusOneWillChange, 2);
-  equal(plusOneDidChange, 2);
+  equal(plusOneWillChange, 2, 'plusOneWillChange');
+  equal(plusOneDidChange, 2, 'plusOneDidChange');
 });
 
 QUnit.module('computed - default setter');

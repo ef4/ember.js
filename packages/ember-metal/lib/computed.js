@@ -10,13 +10,14 @@ import {
 } from 'ember-metal/properties';
 import {
   propertyWillChange,
-  propertyDidChange
+  propertyDidChange,
+  lastChangeId
 } from 'ember-metal/property_events';
 import {
   addDependentKeys,
   removeDependentKeys
 } from 'ember-metal/dependent_keys';
-
+import { depChangeId } from 'ember-metal/core_observer';
 /**
 @module ember
 @submodule ember-metal
@@ -332,26 +333,45 @@ ComputedPropertyPrototype.didChange = function(obj, keyName) {
   @public
 */
 ComputedPropertyPrototype.get = function(obj, keyName) {
+  // to make this changeId-aware, we can't just do `get` on our
+  // dependent keys to make them update their own changeIds from their
+  // own deps, because we're not free to cause evaluation here. So
+  // instead we need to pull all the changeIds forward on our own. But
+  // it would be nice to not repeat that work soon after, when the CP
+  // getter runs and triggers eval.
+  //
+  // If there are not `sets` between these two steps, we can use the
+  // global change counter to know that our state is already fresh
+  // enough.
+  //
+  // So changeIds needs to contain not just the values it has now, but
+  // also "as of global changeId X". The global CP cache needs to also
+  // store "as of my changeId Y".
+  //
+  // Therefore, a `set` anywhere causes use to crawl our dependencies
+  // looking for dirty values. Only if we find one and update our own
+  // changeId will our cache become dirty.
+
+
+
   if (this._volatile) {
     return this._getter.call(obj, keyName);
   }
 
   let meta = metaFor(obj);
-  let cache = meta.writableCache();
+  let cacheAge = meta.peekCacheAge(keyName);
+  if (cacheAge == null) {
+    cacheAge = -1;
+  }
+  let currentAge = this._checkDeps(obj, keyName, meta);
 
-  let result = cache[keyName];
-  if (result === UNDEFINED) {
-    return undefined;
-  } else if (result !== undefined) {
-    return result;
+  if (cacheAge >= currentAge) {
+    return meta.peekCache(keyName);
   }
 
   let ret = this._getter.call(obj, keyName);
-  if (ret === undefined) {
-    cache[keyName] = UNDEFINED;
-  } else {
-    cache[keyName] = ret;
-  }
+  meta.writeCache(keyName, ret);
+  meta.writeCacheAge(keyName, currentAge);
 
   let chainWatchers = meta.readableChainWatchers();
   if (chainWatchers) {
@@ -360,6 +380,20 @@ ComputedPropertyPrototype.get = function(obj, keyName) {
   addDependentKeys(this, obj, keyName, meta);
 
   return ret;
+};
+
+ComputedPropertyPrototype._checkDeps = function(obj, keyName, meta) {
+  let age = meta.peekChangeIds(keyName) || 0;
+  let deps = obj._dependentKeys2;
+  if (deps != null) {
+    for (let i = 0; i < deps.length; i++) {
+      let d = depChangeId(obj, deps[i]);
+      if (age < d) {
+        age = d;
+      }
+    }
+  }
+  return age;
 };
 
 /**

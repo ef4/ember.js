@@ -29,10 +29,11 @@ AliasedProperty.prototype = Object.create(Descriptor.prototype);
 
 AliasedProperty.prototype.get = function AliasedProperty_get(obj, keyName) {
   let ret = get(obj, this.altKey);
+  // FIXME: not sure this is really needed
   let m = obj.__ember_meta__;
   let changeId = m && m.peekChangeIds(this.altKey);
   if (changeId != null) {
-    m.writeChangeIds(keyName, m.peekChangeIds(this.altKey));
+    m.writeChangeIds(keyName, changeId);
   }
   return ret;
 };

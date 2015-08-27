@@ -47,7 +47,7 @@ Observer.prototype.fire = function() {
 };
 
 function currentChangeId(obj, stem, leaf) {
-  let latestChange = null;
+  let latestChange = 0;
   let currentObj = obj;
 
   if (stem != null) {
@@ -79,7 +79,7 @@ function currentChangeId(obj, stem, leaf) {
     if (deps) {
       for (let i = 0; i < deps.length; i++) {
         let d = depChangeId(currentObj, deps[i]);
-        if (d != null && (latestChange == null || d > latestChange)) {
+        if (d > latestChange) {
           latestChange = d;
         }
       }
@@ -89,18 +89,18 @@ function currentChangeId(obj, stem, leaf) {
   return latestChange;
 }
 
-function depChangeId(obj, dep) {
+export function depChangeId(obj, dep) {
   if (dep.length === 1) {
     return currentChangeId(obj, null, dep[0]);
   } else {
-    return currentChangeId(obj, dep.slice(0,-1), dep[dep.length-1]);
+    return currentChangeId(obj, dep.slice(0, -1), dep[dep.length - 1]);
   }
 }
 
 function highestChangeId(latestChange, currentObj, currentKey) {
   let meta = currentObj.__ember_meta__;
-  let changeId = meta && meta.peekChangeIds(currentKey);
-  if (changeId !== null && (latestChange == null || changeId > latestChange)) {
+  let changeId = (meta && meta.peekChangeIds(currentKey)) || 0;
+  if (changeId > latestChange) {
     return changeId;
   } else {
     return latestChange;

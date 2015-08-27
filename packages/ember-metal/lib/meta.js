@@ -32,7 +32,9 @@ import EmptyObject from 'ember-metal/empty_object';
 */
 let members = {
   cache: ownMap,
+  cacheAge: ownMap,
   changeIds: ownMap,
+  depChangeIds: ownMap,
   watching: inheritedMap,
   mixins: inheritedMap,
   bindings: inheritedMap,

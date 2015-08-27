@@ -68,6 +68,10 @@ export function propertyDidChange2(obj, keyName) {
   scheduleCheckObservers();
 }
 
+export function lastChangeId() {
+  return changeCounter;
+}
+
 /**
   This function is called just after an object property has changed.
   It will notify any observers and clear caches among other things.
@@ -95,7 +99,7 @@ function propertyDidChange(obj, keyName) {
     return;
   }
 
-  m.writeChangeIds(keyName, changeCounter++);
+  m.writeChangeIds(keyName, ++changeCounter);
   scheduleCheckObservers();
 
   // shouldn't this mean that we're watching this key?

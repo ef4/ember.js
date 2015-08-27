@@ -1,4 +1,5 @@
 import { get } from 'ember-metal/property_get';
+import { meta as metaFor } from 'ember-metal/meta';
 
 export default function Observer(obj, path, target, method) {
   this.obj = obj;
@@ -53,7 +54,7 @@ function currentChangeId(obj, stem, leaf) {
   if (stem != null) {
     // Intermediate nodes necessarily need to get evaluated anyway, so
     // we rely on their own descriptor implementations to account for
-    // their _dependentKeys during each `get`.
+    // their dependent keys during each `get`.
     let step = 0;
     while (currentObj && step < stem.length) {
       let currentKey = stem[step];
@@ -71,22 +72,39 @@ function currentChangeId(obj, stem, leaf) {
   }
 
   if (currentObj != null) {
-    // Check the leaf's own changeId
-    latestChange = highestChangeId(latestChange, currentObj, leaf);
-
-    // The leaf's dependent keys need to be checked explicitly
-    let deps = dependentKeys(currentObj, leaf);
-    if (deps) {
-      for (let i = 0; i < deps.length; i++) {
-        let d = depChangeId(currentObj, deps[i]);
-        if (d > latestChange) {
-          latestChange = d;
-        }
-      }
+    let own = ownChangeId(currentObj, leaf);
+    if (own > latestChange) {
+      latestChange = own;
     }
   }
 
   return latestChange;
+}
+
+export function ownChangeId(obj, leaf, inMeta) {
+  let meta = inMeta || metaFor(obj);
+  let ownId = meta.peekChangeIds(leaf) || 0;
+  let deps = dependentKeys(obj, leaf);
+
+  if (!deps || depsAreFresh(leaf, meta)) {
+    return ownId;
+  }
+
+  meta.writeDepsAge(leaf, changeCounter);
+
+  let newestDepId = 0;
+  for (let i = 0; i < deps.length; i++) {
+    let d = depChangeId(obj, deps[i]);
+    if (d > newestDepId) {
+      newestDepId = d;
+    }
+  }
+  if (newestDepId > ownId) {
+    meta.writeChangeIds(leaf, newestDepId);
+    return newestDepId;
+  } else {
+    return ownId;
+  }
 }
 
 export function depChangeId(obj, dep) {
@@ -114,13 +132,12 @@ function dependentKeys(obj, key) {
   }
 }
 
+function depsAreFresh(key, meta) {
+  return meta.peekDepsAge(key) === changeCounter;
+}
 
 var changeCounter = 0;
 
 export function nextChangeId() {
   return ++changeCounter;
-}
-
-export function lastChangeId() {
-  return changeCounter;
 }

@@ -40,7 +40,6 @@ var AliasedPropertyPrototype = AliasedProperty.prototype;
 InjectedPropertyPrototype._super$Constructor = ComputedProperty;
 
 InjectedPropertyPrototype.get = ComputedPropertyPrototype.get;
-InjectedPropertyPrototype._checkDeps = ComputedPropertyPrototype._checkDeps;
 InjectedPropertyPrototype.readOnly = ComputedPropertyPrototype.readOnly;
 
 InjectedPropertyPrototype.teardown = ComputedPropertyPrototype.teardown;

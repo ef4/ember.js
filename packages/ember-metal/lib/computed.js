@@ -16,7 +16,7 @@ import {
   addDependentKeys,
   removeDependentKeys
 } from 'ember-metal/dependent_keys';
-import { depChangeId } from 'ember-metal/core_observer';
+import { ownChangeId } from 'ember-metal/core_observer';
 import run from 'ember-metal/run_loop';
 /**
 @module ember
@@ -363,7 +363,7 @@ ComputedPropertyPrototype.get = function(obj, keyName) {
   if (cacheAge == null) {
     cacheAge = -1;
   }
-  let currentAge = this._checkDeps(obj, keyName, meta);
+  let currentAge = ownChangeId(obj, keyName, meta);
 
   if (cacheAge >= currentAge) {
     return meta.peekCache(keyName);
@@ -380,20 +380,6 @@ ComputedPropertyPrototype.get = function(obj, keyName) {
   addDependentKeys(this, obj, keyName, meta);
 
   return ret;
-};
-
-ComputedPropertyPrototype._checkDeps = function(obj, keyName, meta) {
-  let age = meta.peekChangeIds(keyName) || 0;
-  let deps = this._dependentKeys2;
-  if (deps != null) {
-    for (let i = 0; i < deps.length; i++) {
-      let d = depChangeId(obj, deps[i]);
-      if (age < d) {
-        age = d;
-      }
-    }
-  }
-  return age;
 };
 
 /**
@@ -498,7 +484,7 @@ ComputedPropertyPrototype._set = function computedPropertySet(obj, keyName, valu
     let hadCachedValue = false;
     let cachedValue;
 
-    let currentAge = this._checkDeps(obj, keyName, meta);
+    let currentAge = ownChangeId(obj, keyName, meta);
     if (cacheAge >= currentAge) {
       hadCachedValue = true;
       cachedValue = meta.peekCache(keyName);

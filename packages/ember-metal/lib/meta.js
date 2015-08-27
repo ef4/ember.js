@@ -31,10 +31,25 @@ import EmptyObject from 'ember-metal/empty_object';
 
 */
 let members = {
+  // cached values of computed properties. Valid only if the max of
+  // the CP's computed properties' changeIds is <= the property's
+  // cacheAge.
   cache: ownMap,
+
+  // for each cached computed property, the changedId of its deps at
+  // the time we last recomputed
   cacheAge: ownMap,
+
+  // the current changeId for each property that has been `Ember.set`.
   changeIds: ownMap,
-  depChangeIds: ownMap,
+
+  // the latest changeId that is guaranteed to be incorporated from
+  // this property's dependencies into its own changeId. This prevents
+  // us from crawling the dependency graph in circles when no
+  // intervening sets have actually happened (and it can save us
+  // duplicate work even when there are no cycles).
+  depsAge: ownMap,
+
   watching: inheritedMap,
   mixins: inheritedMap,
   bindings: inheritedMap,

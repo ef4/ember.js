@@ -8,6 +8,8 @@ import {
 } from 'ember-metal/observer';
 import Stream from 'ember-metal/streams/stream';
 import { isStream  } from 'ember-metal/streams/utils';
+import EmberObject from 'ember-runtime/system/object';
+import EmberArray from 'ember-runtime/mixins/array';
 
 function KeyStream(source, key) {
   assert('KeyStream error: source must be a stream', isStream(source)); // TODO: This isn't necessary.
@@ -59,7 +61,7 @@ merge(KeyStream.prototype, {
     if (object !== this.observedObject) {
       this._clearObservedObject();
 
-      if (object && typeof object === 'object') {
+      if (object && (object instanceof EmberObject) || EmberArray.detect(object)) {
         addObserver(object, this.key, this, this.notify);
         this.observedObject = object;
       }
